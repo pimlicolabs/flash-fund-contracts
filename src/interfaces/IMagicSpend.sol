@@ -8,7 +8,18 @@ interface IMagicSpend {
         uint256 amount;
         address receipient;
         uint256 nonce;
+        uint48 expiration;
     }
 
-    event Claim();
+    error InsufficientFunds();
+    error InvalidNonce();
+    error InvalidSignature();
+    error ExpiredClaim();
+
+    event Claim(
+        address account,
+        uint256 amount,
+        address receipient,
+        uint256 nonce
+    );
 }

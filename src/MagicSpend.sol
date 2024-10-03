@@ -3,16 +3,14 @@ pragma solidity ^0.8.13;
 
 import "./interfaces/IMagicSpend.sol";
 import "./StakeManager.sol";
+import "./NonceManager.sol";
 
-import {SignatureCheckerLib} from "solady/src/utils/SignatureCheckerLib.sol";
-import {SafeTransferLib} from "solady/src/utils/SafeTransferLib.sol";
+import {SignatureCheckerLib} from "solady/utils/SignatureCheckerLib.sol";
+import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
 
 
-contract MagicSpend is IMagicSpend, StakeManager {
+contract MagicSpend is IMagicSpend, StakeManager, NonceManager {
     address immutable operator;
-
-    error InsufficientFunds();
-    error InvalidNonce();
 
     constructor(
         address _operator
@@ -25,40 +23,73 @@ contract MagicSpend is IMagicSpend, StakeManager {
     // - It's supposed to happen after the user has spent some of them
     // 2. User claims the funds from the deposits
     function claim(
-        uint256 _amount,
-        ClaimInfo calldata _claimInfo
+        ClaimInfo calldata claimInfo,
+        bytes calldata signature
     ) public {
         // Verify signature
+        bool signatureValid = SignatureCheckerLib.isValidSignatureNowCalldata(
+            operator,
+            getHash(claimInfo),
+            signature
+        );
+
+        if (!signatureValid) {
+            revert InvalidSignature();
+        }
+
+        // Check expiration
+        if (claimInfo.expiration < block.timestamp) {
+            revert ExpiredClaim();
+        }
 
         // Check that the account has enough funds
-        if (deposits[_claimInfo.account] < _amount) {
+        // TODO: simplify stake manager
+        // Drop unstaked mode?
+        if (deposits[claimInfo.account].deposit < claimInfo.amount) {
             revert InsufficientFunds();
         } else {
-            deposits[_claimInfo.account] -= _amount;
+            deposits[claimInfo.account] -= claimInfo.amount;
+
+            if (deposits[claimInfo.account].stake >= claimInfo.amount) {
+                deposits[claimInfo.account].stake -= claimInfo.amount;
+            }
         }
 
         // Check and update nonce
-        bool nonceValid = _validateAndUpdateNonce(_claimInfo.account, _claimInfo.nonce);
+        bool nonceValid = _validateAndUpdateNonce(claimInfo.account, claimInfo.nonce);
 
         if (!nonceValid) {
             revert InvalidNonce();
         }
 
-        // Safely transfer ETH to receipient
+        // Transfer ETH to receipient
+        SafeTransferLib.forceSafeTransferETH(
+            claimInfo.account,
+            claimInfo.amount,
+            SafeTransferLib.GAS_STIPEND_NO_STORAGE_WRITES
+        );
+
+        emit Claim(
+            claimInfo.account,
+            claimInfo.amount,
+            claimInfo.receipient,
+            claimInfo.nonce
+        );
     }
 
     function getHash(
-        ClaimInfo memory claimInfo
+        ClaimInfo calldata claimInfo
     ) public view returns (bytes32) {
         return SignatureCheckerLib.toEthSignedMessageHash(
             abi.encode(
                 address(this),
-                account,
+                operator,
                 block.chainid,
                 claimInfo.account,
                 claimInfo.amount,
                 claimInfo.receipient,
-                claimInfo.nonce
+                claimInfo.nonce,
+                claimInfo.expiration
             )
         );
     }
