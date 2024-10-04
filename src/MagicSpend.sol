@@ -37,10 +37,6 @@ contract MagicSpend is IMagicSpend, StakeManager, NonceManager, Ownable {
         _setOperator(_operator);
     }
 
-    // Used in two scenarios:
-    // 1. Operator himself claims the funds from the deposits
-    // - It's supposed to happen after the user has spent some of them
-    // 2. User claims the funds from the deposits
     function claim(
         ClaimInfo calldata claimInfo,
         bytes calldata signature
