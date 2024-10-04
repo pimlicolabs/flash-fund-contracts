@@ -42,17 +42,14 @@ contract MagicSpend is IMagicSpend, StakeManager, NonceManager {
             revert ExpiredClaim();
         }
 
-        // Check that the account has enough funds
-        // TODO: simplify stake manager
-        // Drop unstaked mode?
-        if (deposits[claimInfo.account].deposit < claimInfo.amount) {
-            revert InsufficientFunds();
-        } else {
-            deposits[claimInfo.account] -= claimInfo.amount;
+        // Check that the account has enough stake
+        bool stakeDecreased = _decreaseStake(
+            claimInfo.account,
+            uint128(claimInfo.amount)
+        );
 
-            if (deposits[claimInfo.account].stake >= claimInfo.amount) {
-                deposits[claimInfo.account].stake -= claimInfo.amount;
-            }
+        if (!stakeDecreased) {
+            revert InsufficientFunds();
         }
 
         // Check and update nonce

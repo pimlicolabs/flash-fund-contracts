@@ -2,6 +2,7 @@
 pragma solidity ^0.8.23;
 
 import "./interfaces/IStakeManager.sol";
+import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
 
 /* solhint-disable avoid-low-level-calls */
 /* solhint-disable not-rely-on-time */
@@ -12,57 +13,38 @@ import "./interfaces/IStakeManager.sol";
  * Stake is value locked for at least "unstakeDelay" by a paymaster.
  */
 abstract contract StakeManager is IStakeManager {
-    /// maps paymaster to their deposits and stakes
-    mapping(address => DepositInfo) public deposits;
+    /// maps account to its stake
+    mapping(address => StakeInfo) private stakes;
+    uint32 public constant TWO_WEEKS = 1209600;
 
     /// @inheritdoc IStakeManager
-    function getDepositInfo(
+    function getStakeInfo(
         address account
-    ) public view returns (DepositInfo memory info) {
-        return deposits[account];
+    ) public view returns (StakeInfo memory info) {
+        return stakes[account];
     }
 
-    /**
-     * Internal method to return just the stake info.
-     * @param addr - The account to query.
-     */
-    function _getStakeInfo(
-        address addr
-    ) internal view returns (StakeInfo memory info) {
-        DepositInfo storage depositInfo = deposits[addr];
-        info.stake = depositInfo.stake;
-        info.unstakeDelaySec = depositInfo.unstakeDelaySec;
-    }
 
     /// @inheritdoc IStakeManager
     function balanceOf(address account) public view returns (uint256) {
-        return deposits[account].deposit;
+        return stakes[account].stake;
     }
 
     receive() external payable {
-        depositTo(msg.sender);
+        addStake(TWO_WEEKS);
     }
 
-    /**
-     * Increments an account's deposit.
-     * @param account - The account to increment.
-     * @param amount  - The amount to increment by.
-     * @return the updated deposit of this account
-     */
-    function _incrementDeposit(address account, uint256 amount) internal returns (uint256) {
-        DepositInfo storage info = deposits[account];
-        uint256 newAmount = info.deposit + amount;
-        info.deposit = newAmount;
-        return newAmount;
-    }
+    function _decreaseStake(
+        address account,
+        uint128 amount
+    ) internal returns (bool) {
+        StakeInfo storage info = stakes[account];
+        if (info.stake < amount) {
+            return false;
+        }
 
-    /**
-     * Add to the deposit of the given account.
-     * @param account - The account to add to.
-     */
-    function depositTo(address account) public virtual payable {
-        uint256 newDeposit = _incrementDeposit(account, msg.value);
-        emit Deposited(account, newDeposit);
+        info.stake -= amount;
+        return true;
     }
 
     /**
@@ -71,75 +53,57 @@ abstract contract StakeManager is IStakeManager {
      * @param unstakeDelaySec The new lock duration before the deposit can be withdrawn.
      */
     function addStake(uint32 unstakeDelaySec) public payable {
-        DepositInfo storage info = deposits[msg.sender];
-        require(unstakeDelaySec > 0, "must specify unstake delay");
-        require(
-            unstakeDelaySec >= info.unstakeDelaySec,
-            "cannot decrease unstake time"
-        );
+        StakeInfo storage info = stakes[msg.sender];
+
+        uint128 newWithdrawTime = uint128(block.timestamp) + unstakeDelaySec;
+
+        if (unstakeDelaySec == 0 || newWithdrawTime < info.withdrawTime) {
+            revert InvalidUnstakeDelay();
+        }
+
         uint256 stake = info.stake + msg.value;
-        require(stake > 0, "no stake specified");
-        require(stake <= type(uint112).max, "stake overflow");
-        deposits[msg.sender] = DepositInfo(
-            info.deposit,
-            true,
-            uint112(stake),
-            unstakeDelaySec,
-            0
+        if (stake == 0) {
+            revert StakeTooLow();
+        }
+
+        if (stake > type(uint128).max) {
+            revert StakeTooHigh();
+        }
+
+        uint256 withdrawTime = block.timestamp + unstakeDelaySec;
+
+        stakes[msg.sender] = StakeInfo(
+            uint128(stake),
+            uint128(withdrawTime)
         );
-        emit StakeLocked(msg.sender, stake, unstakeDelaySec);
+
+        emit StakeLocked(msg.sender, stake, withdrawTime);
     }
 
     /**
-     * Attempt to unlock the stake.
-     * The value can be withdrawn (using withdrawStake) after the unstake delay.
-     */
-    function unlockStake() external {
-        DepositInfo storage info = deposits[msg.sender];
-        require(info.unstakeDelaySec != 0, "not staked");
-        require(info.staked, "already unstaking");
-        uint48 withdrawTime = uint48(block.timestamp) + info.unstakeDelaySec;
-        info.withdrawTime = withdrawTime;
-        info.staked = false;
-        emit StakeUnlocked(msg.sender, withdrawTime);
-    }
-
-    /**
-     * Withdraw from the (unlocked) stake.
+     * Withdraw from the stake.
      * Must first call unlockStake and wait for the unstakeDelay to pass.
      * @param withdrawAddress - The address to send withdrawn value.
      */
-    function withdrawStake(address payable withdrawAddress) external {
-        DepositInfo storage info = deposits[msg.sender];
+    function withdraw(
+        address payable withdrawAddress
+    ) external {
+        StakeInfo storage info = stakes[msg.sender];
         uint256 stake = info.stake;
-        require(stake > 0, "No stake to withdraw");
-        require(info.withdrawTime > 0, "must call unlockStake() first");
-        require(
-            info.withdrawTime <= block.timestamp,
-            "Stake withdrawal is not due"
-        );
-        info.unstakeDelaySec = 0;
+
+        if (stake == 0) {
+            revert StakeTooLow();
+        }
+
+        if (info.withdrawTime > block.timestamp) {
+            revert StakeIsLocked();
+        }
+
         info.withdrawTime = 0;
         info.stake = 0;
-        emit StakeWithdrawn(msg.sender, withdrawAddress, stake);
-        (bool success,) = withdrawAddress.call{value: stake}("");
-        require(success, "failed to withdraw stake");
-    }
 
-    /**
-     * Withdraw from the deposit.
-     * @param withdrawAddress - The address to send withdrawn value.
-     * @param withdrawAmount  - The amount to withdraw.
-     */
-    function withdrawTo(
-        address payable withdrawAddress,
-        uint256 withdrawAmount
-    ) external {
-        DepositInfo storage info = deposits[msg.sender];
-        require(withdrawAmount <= info.deposit, "Withdraw amount too large");
-        info.deposit = info.deposit - withdrawAmount;
-        emit Withdrawn(msg.sender, withdrawAddress, withdrawAmount);
-        (bool success,) = withdrawAddress.call{value: withdrawAmount}("");
-        require(success, "failed to withdraw");
+        emit StakeWithdrawn(msg.sender, withdrawAddress, stake);
+
+        SafeTransferLib.safeTransferETH(withdrawAddress, stake);
     }
 }
