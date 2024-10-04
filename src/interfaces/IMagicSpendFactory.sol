@@ -3,5 +3,9 @@ pragma solidity ^0.8.13;
 
 
 interface IMagicSpendFactory {
-    function deposit() external payable;
+    event MagicSpendDeployed(address indexed operator, address contractAddress);
+
+    function deployMagicSpend(
+        address operator
+    ) external;
 }
