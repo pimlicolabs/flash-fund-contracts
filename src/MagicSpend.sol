@@ -7,15 +7,34 @@ import "./NonceManager.sol";
 
 import {SignatureCheckerLib} from "solady/utils/SignatureCheckerLib.sol";
 import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
+import {Ownable} from "solady/auth/Ownable.sol";
 
 
-contract MagicSpend is IMagicSpend, StakeManager, NonceManager {
-    address immutable operator;
+contract MagicSpend is IMagicSpend, StakeManager, NonceManager, Ownable {
+    address private operator;
 
     constructor(
+        address _owner,
         address _operator
     ) {
+        Ownable._initializeOwner(_owner);
+        _setOperator(_operator);
+    }
+
+    function _setOperator(address _operator) internal {
         operator = _operator;
+
+        emit OperatorUpdated(_operator);
+    }
+
+    function getOperator() external view override returns (address) {
+        return operator;
+    }
+
+    function setOperator(
+        address _operator
+    ) public override onlyOwner {
+        _setOperator(_operator);
     }
 
     // Used in two scenarios:
@@ -25,7 +44,7 @@ contract MagicSpend is IMagicSpend, StakeManager, NonceManager {
     function claim(
         ClaimInfo calldata claimInfo,
         bytes calldata signature
-    ) public {
+    ) external {
         // Verify signature
         bool signatureValid = SignatureCheckerLib.isValidSignatureNowCalldata(
             operator,
@@ -80,6 +99,7 @@ contract MagicSpend is IMagicSpend, StakeManager, NonceManager {
         return SignatureCheckerLib.toEthSignedMessageHash(
             abi.encode(
                 address(this),
+                owner(),
                 operator,
                 block.chainid,
                 claimInfo.account,

@@ -7,5 +7,5 @@ interface IMagicSpendFactory {
 
     function deployMagicSpend(
         address operator
-    ) external;
+    ) external returns (address);
 }

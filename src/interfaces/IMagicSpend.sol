@@ -22,4 +22,12 @@ interface IMagicSpend {
         address receipient,
         uint256 nonce
     );
+
+    event OperatorUpdated(address operator);
+
+    function getOperator() external view returns (address);
+
+    function setOperator(
+        address _operator
+    ) external;
 }
