@@ -52,6 +52,11 @@ contract MagicSpend is IMagicSpend, StakeManager, NonceManager, Ownable {
             revert InvalidSignature();
         }
 
+        // Check chain id
+        if (claimInfo.chainid != block.chainid) {
+            revert InvalidChainId();
+        }
+
         // Check expiration
         if (claimInfo.expiration < block.timestamp) {
             revert ExpiredClaim();
@@ -97,7 +102,7 @@ contract MagicSpend is IMagicSpend, StakeManager, NonceManager, Ownable {
                 address(this),
                 owner(),
                 operator,
-                block.chainid,
+                claimInfo.chainid,
                 claimInfo.account,
                 claimInfo.amount,
                 claimInfo.receipient,

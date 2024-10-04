@@ -8,6 +8,7 @@ interface IMagicSpend {
         uint256 amount;
         address receipient;
         uint256 nonce;
+        uint256 chainId;
         uint48 expiration;
     }
 
@@ -15,6 +16,7 @@ interface IMagicSpend {
     error InvalidNonce();
     error InvalidSignature();
     error ExpiredClaim();
+    error InvalidChainId();
 
     event Claim(
         address account,
