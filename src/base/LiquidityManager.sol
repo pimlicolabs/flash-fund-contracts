@@ -3,35 +3,27 @@ pragma solidity ^0.8.26;
 
 import {SafeTransferLib} from "@solady-0.0.259/utils/SafeTransferLib.sol";
 import {Ownable} from "@openzeppelin-5.0.2/contracts/access/Ownable.sol";
+import {ReentrancyGuard} from "@openzeppelin-5.0.2/contracts/utils/ReentrancyGuard.sol";
 import {ETH} from "./Helpers.sol";
 
 
-abstract contract LiquidityManager is Ownable {
-    error InsufficientLiquidity(address asset);
-
-    enum LiquidityUpdateEvent {
-        ADDED,
-        REMOVED
-    }
-
-    /// @notice Emitted when liquidity has been added or removed.
-    event LiquidityUpdated(
-        LiquidityUpdateEvent event_,
-        address indexed asset,
-        uint128 diff,
+abstract contract LiquidityManager is Ownable, ReentrancyGuard {
+    event LiquidityAdded(
+        address asset,
         uint128 amount
     );
 
-    mapping (address asset => uint128 amount) private liquidity;
+    event LiquidityRemoved(
+        address asset,
+        uint128 amount
+    );
 
-    function getBalance(address asset) public view returns (uint128) {
-        return liquidity[asset];
-    }
+    error InsufficientLiquidity(address asset);
 
     function addLiquidity(
         address asset,
         uint128 amount
-    ) external payable {
+    ) external payable onlyOwner nonReentrant {
         if (asset == ETH) {
             if (msg.value != amount) {
                 revert InsufficientLiquidity(asset);
@@ -40,51 +32,25 @@ abstract contract LiquidityManager is Ownable {
             SafeTransferLib.safeTransferFrom(asset, msg.sender, address(this), amount);
         }
 
-        _addLiquidity(asset, amount);
-
-        emit LiquidityUpdated(
-            LiquidityUpdateEvent.ADDED,
+        emit LiquidityAdded(
             asset,
-            amount,
-            liquidity[asset]
+            amount
         );
     }
 
     function removeLiquidity(
         address asset,
         uint128 amount
-    ) external onlyOwner {
-        _removeLiquidity(asset, amount);
-
-        if (asset == address(0)) {
+    ) external onlyOwner nonReentrant {
+        if (asset == ETH) {
             SafeTransferLib.forceSafeTransferETH(msg.sender, amount);
         } else {
             SafeTransferLib.safeTransfer(asset, msg.sender, amount);
         }
 
-        emit LiquidityUpdated(
-            LiquidityUpdateEvent.REMOVED,
+        emit LiquidityRemoved(
             asset,
-            amount,
-            liquidity[asset]
+            amount
         );
-    }
-
-    function _addLiquidity(
-        address asset,
-        uint128 amount
-    ) internal {
-        liquidity[asset] += amount;
-    }
-
-    function _removeLiquidity(
-        address asset,
-        uint128 amount
-    ) internal {
-        if (liquidity[asset] < amount) {
-            revert InsufficientLiquidity(asset);
-        }
-
-        liquidity[asset] -= amount;
     }
 }

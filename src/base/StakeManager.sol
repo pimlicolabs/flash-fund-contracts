@@ -138,7 +138,10 @@ abstract contract StakeManager is ReentrancyGuard {
      * @param asset - The address of the asset being withdrawn
      * @param recipient - The address to send the withdrawn assets
      */
-    function withdrawStake(address asset, address payable recipient) external virtual {
+    function withdrawStake(
+        address asset,
+        address payable recipient
+    ) external nonReentrant {
         StakeInfo storage stakeInfo = stakes[msg.sender][asset];
 
         if (stakeInfo.staked || stakeInfo.withdrawTime == 0 || stakeInfo.withdrawTime > block.timestamp) {
