@@ -11,55 +11,36 @@ import {ForceReverter} from "./utils/ForceReverter.sol";
 import {MessageHashUtils} from "@openzeppelin-5.0.2/contracts/utils/cryptography/MessageHashUtils.sol";
 import {SafeTransferLib} from "@solady-0.0.259/utils/SafeTransferLib.sol";
 import {MagicSpendLiquidityManager} from "./../src/MagicSpendLiquidityManager.sol";
-import {MagicSpendStakeManager} from "./../src/MagicSpendStakeManager.sol";
 
 
 contract MagicSpendLiquidityManagerTest is Test {
     address immutable OWNER = makeAddr("owner");
     address immutable RECIPIENT = makeAddr("recipient");
 
-    uint128 withdrawChainId = 111;
-    uint128 claimChainId = 999;
-
+    uint128 chainId = 111;
     uint128 amount = 5 ether;
     uint128 fee = 0;
 
     address signer;
     uint256 signerKey;
 
-    address alice;
-    uint256 aliceKey;
-
     ForceReverter forceReverter;
     MagicSpendLiquidityManager magicSpendLiquidityManager;
-    MagicSpendStakeManager magicSpendStakeManager;
     TestERC20 token;
 
     function setUp() external {
         (signer, signerKey) = makeAddrAndKey("signer");
-        (alice, aliceKey) = makeAddrAndKey("alice");
 
         magicSpendLiquidityManager = new MagicSpendLiquidityManager(OWNER, signer);
-        magicSpendStakeManager = new MagicSpendStakeManager(OWNER);
 
         token = new TestERC20(18);
         forceReverter = new ForceReverter();
 
         vm.deal(OWNER, 100 ether);
-        vm.deal(alice, 100 ether);
 
         vm.prank(OWNER);
         token.sudoMint(OWNER, 100 ether);
-        token.sudoMint(alice, 100 ether);
-
         vm.prank(OWNER);
-        token.approve(address(magicSpendStakeManager), 100 ether);
-        vm.prank(OWNER);
-        token.approve(address(magicSpendLiquidityManager), 100 ether);
-
-        vm.prank(alice);
-        token.approve(address(magicSpendStakeManager), 100 ether);
-        vm.prank(alice);
         token.approve(address(magicSpendLiquidityManager), 100 ether);
     }
 
@@ -69,7 +50,7 @@ contract MagicSpendLiquidityManagerTest is Test {
         _addLiquidity(asset, amount);
 
         WithdrawRequest memory request = WithdrawRequest({
-            chainId: withdrawChainId,
+            chainId: chainId,
             amount: amount,
             asset: asset,
             recipient: RECIPIENT,
@@ -88,7 +69,7 @@ contract MagicSpendLiquidityManagerTest is Test {
             request.amount
         );
 
-        vm.chainId(withdrawChainId);
+        vm.chainId(chainId);
 
         magicSpendLiquidityManager.withdraw(
             request,
@@ -103,7 +84,7 @@ contract MagicSpendLiquidityManagerTest is Test {
         _addLiquidity(asset, amount);
 
         WithdrawRequest memory request = WithdrawRequest({
-            chainId: withdrawChainId,
+            chainId: chainId,
             amount: amount,
             asset: asset,
             recipient: RECIPIENT,
@@ -122,7 +103,7 @@ contract MagicSpendLiquidityManagerTest is Test {
             request.amount
         );
 
-        vm.chainId(withdrawChainId);
+        vm.chainId(chainId);
 
         magicSpendLiquidityManager.withdraw(
             request,
@@ -139,12 +120,12 @@ contract MagicSpendLiquidityManagerTest is Test {
         uint48 testValidUntil = uint48(block.timestamp + 5);
 
         vm.warp(500);
-        vm.chainId(withdrawChainId);
+        vm.chainId(chainId);
 
         WithdrawRequest memory request = WithdrawRequest({
             validUntil: testValidUntil,
 
-            chainId: withdrawChainId,
+            chainId: chainId,
             amount: amount,
             asset: asset,
             recipient: RECIPIENT,
@@ -173,12 +154,12 @@ contract MagicSpendLiquidityManagerTest is Test {
         uint48 testValidAfter = 4096;
 
         vm.warp(500);
-        vm.chainId(withdrawChainId);
+        vm.chainId(chainId);
 
         WithdrawRequest memory request = WithdrawRequest({
             validAfter: testValidAfter,
 
-            chainId: withdrawChainId,
+            chainId: chainId,
             amount: amount,
             asset: asset,
             recipient: RECIPIENT,
@@ -202,10 +183,10 @@ contract MagicSpendLiquidityManagerTest is Test {
 
         (, uint256 unauthorizedSingerKey) = makeAddrAndKey("unauthorizedSinger");
 
-        vm.chainId(withdrawChainId);
+        vm.chainId(chainId);
 
         WithdrawRequest memory request = WithdrawRequest({
-            chainId: withdrawChainId,
+            chainId: chainId,
             amount: amount,
             asset: asset,
             recipient: RECIPIENT,
@@ -227,10 +208,10 @@ contract MagicSpendLiquidityManagerTest is Test {
 
         _addLiquidity(asset, amount);
 
-        vm.chainId(withdrawChainId);
+        vm.chainId(chainId);
 
         WithdrawRequest memory request = WithdrawRequest({
-            chainId: withdrawChainId,
+            chainId: chainId,
             amount: amount,
             asset: asset,
             recipient: RECIPIENT,
@@ -263,10 +244,10 @@ contract MagicSpendLiquidityManagerTest is Test {
     function test_RevertWhen_WithdrawRequestTransferFailed() external {
         address asset = ETH;
 
-        vm.chainId(withdrawChainId);
+        vm.chainId(chainId);
 
         WithdrawRequest memory request = WithdrawRequest({
-            chainId: withdrawChainId,
+            chainId: chainId,
             amount: amount,
             asset: asset,
             recipient: RECIPIENT,
@@ -295,12 +276,12 @@ contract MagicSpendLiquidityManagerTest is Test {
         address asset = ETH;
 
         _addLiquidity(asset, amount);
-        vm.chainId(withdrawChainId);
+        vm.chainId(chainId);
 
         string memory revertMessage = "MAGIC";
 
         WithdrawRequest memory request = WithdrawRequest({
-            chainId: withdrawChainId,
+            chainId: chainId,
             amount: amount,
             asset: asset,
             recipient: RECIPIENT,
@@ -330,12 +311,12 @@ contract MagicSpendLiquidityManagerTest is Test {
 
         _addLiquidity(asset, amount);
 
-        vm.chainId(withdrawChainId);
+        vm.chainId(chainId);
 
         string memory revertMessage = "MAGIC";
 
         WithdrawRequest memory request = WithdrawRequest({
-            chainId: withdrawChainId,
+            chainId: chainId,
             amount: amount,
             asset: asset,
             recipient: RECIPIENT,
@@ -360,89 +341,6 @@ contract MagicSpendLiquidityManagerTest is Test {
         magicSpendLiquidityManager.withdraw(request, signature);
     }
 
-    function testClaimNativeTokenSuccess() external {
-        address asset = ETH;
-
-        _addStake(asset, amount + fee);
-
-        ClaimRequest memory request = ClaimRequest({
-            claims: new ClaimStruct[](1)
-        });
-
-        request.claims[0] = ClaimStruct({
-            asset: asset,
-            amount: amount,
-            fee: fee,
-            chainId: claimChainId,
-            nonce: 0
-        });
-
-        vm.chainId(claimChainId);
-
-        bytes memory signature = signClaimRequest(request, aliceKey);
-
-        vm.expectEmit(address(magicSpendStakeManager));
-        emit MagicSpendStakeManager.RequestClaimed(
-            magicSpendStakeManager.getClaimRequestHash(request),
-            alice,
-            asset,
-            amount
-        );
-
-        magicSpendStakeManager.claim(
-            request,
-            signature,
-            0
-        );
-        vm.assertEq(
-            magicSpendStakeManager.stakeOf(alice, asset),
-            0 ether,
-            "Alice should lose her stake after claim"
-        );
-    }
-
-    function testClaimERC20TokenSuccess() external {
-        address asset = address(token);
-
-        _addStake(asset, amount + fee);
-
-        ClaimRequest memory request = ClaimRequest({
-            claims: new ClaimStruct[](1)
-        });
-
-        request.claims[0] = ClaimStruct({
-            asset: asset,
-            amount: amount,
-            fee: fee,
-            chainId: claimChainId,
-            nonce: 0
-        });
-
-        vm.chainId(claimChainId);
-
-        bytes memory signature = signClaimRequest(request, aliceKey);
-
-        vm.expectEmit(address(magicSpendStakeManager));
-        emit MagicSpendStakeManager.RequestClaimed(
-            magicSpendStakeManager.getClaimRequestHash(request),
-            alice,
-            asset,
-            amount
-        );
-
-        magicSpendStakeManager.claim(
-            request,
-            signature,
-            0
-        );
-
-        vm.assertEq(
-            magicSpendStakeManager.stakeOf(alice, asset),
-            0 ether,
-            "Alice should lose her stake after claim"
-        );
-    }
-
     // // = = = Helpers = = =
 
     function signWithdrawRequest(WithdrawRequest memory request, uint256 signingKey)
@@ -451,21 +349,6 @@ contract MagicSpendLiquidityManagerTest is Test {
         returns (bytes memory signature)
     {
         bytes32 hash_ = magicSpendLiquidityManager.getWithdrawRequestHash(request);
-
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(
-            signingKey,
-            MessageHashUtils.toEthSignedMessageHash(hash_)
-        );
-
-        return abi.encodePacked(r, s, v);
-    }
-
-    function signClaimRequest(ClaimRequest memory request, uint256 signingKey)
-        internal
-        view
-        returns (bytes memory signature)
-    {
-        bytes32 hash_ = magicSpendStakeManager.getClaimRequestHash(request);   
 
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(
             signingKey,
@@ -484,19 +367,6 @@ contract MagicSpendLiquidityManagerTest is Test {
         magicSpendLiquidityManager.addLiquidity{
             value: asset == ETH ? amount_ : 0
         }(asset, amount_);
-
-        vm.stopPrank();
-    }
-
-    function _addStake(
-        address asset,
-        uint128 amount_
-    ) internal {
-        vm.prank(alice);
-
-        magicSpendStakeManager.addStake{
-            value: asset == ETH ? amount_ : 0
-        }(asset, amount_, 1);
 
         vm.stopPrank();
     }
