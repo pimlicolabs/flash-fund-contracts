@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity ^0.8.23;
 
-import "./../interfaces/IStakeManager.sol";
-import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
-import {ReentrancyGuard} from "@openzeppelin-v5.0.2/contracts/utils/ReentrancyGuard.sol";
+import {SafeTransferLib} from "@solady-0.0.259/utils/SafeTransferLib.sol";
+import {ReentrancyGuard} from "@openzeppelin-5.0.2/contracts/utils/ReentrancyGuard.sol";
+import {ETH} from "./Helpers.sol";
 
 /* solhint-disable avoid-low-level-calls */
 /* solhint-disable not-rely-on-time */
+
 
 /**
  * Manages stakes.
@@ -16,14 +17,42 @@ import {ReentrancyGuard} from "@openzeppelin-v5.0.2/contracts/utils/ReentrancyGu
  * - Stake is claimed every time `MagicSpendPlusMinusHalf.claim` is called
  * - To remove stake, call `removeStake` with the asset and recipient. No partical unstakes are allowed.
  */
-abstract contract StakeManager is IStakeManager, ReentrancyGuard {
+abstract contract StakeManager is ReentrancyGuard {
+    error InvalidUnstakeDelay();
+    error StakeTooLow();
+    error StakeTooHigh();
+    error StakeAlreadyUnlocked();
+    error StakeIsLocked();
+    error InsufficientFunds();
+
+    /// Emitted when a stake is added
+    event StakeLocked(address indexed account, address indexed asset, uint256 amount, uint256 unstakeDelaySec);
+
+    /// Emitted when a stake is unlocked (starts the unstake process)
+    event StakeUnlocked(address indexed account, address indexed asset, uint256 withdrawTime);
+
+    /// Emitted when a stake is withdrawn
+    event StakeWithdrawn(address indexed account, address indexed asset, uint256 amount);
+
+    /// Emitted when a stake is claimed
+    event StakeClaimed(address indexed account, address indexed asset, uint256 amount);
+
+    /**
+     * @param stake           - Actual amount of ether staked for this entity.
+     * @param unstakeTime    - First block timestamp where 'unstake' will be callable.
+     */
+    struct StakeInfo {
+        uint128 amount; // The amount of staked asset
+        uint32 unstakeDelaySec; // The delay required before the stake can be withdrawn
+        uint48 withdrawTime; // Timestamp when the user can withdraw their assets (after unlocking)
+        bool staked; // Indicates if the asset is currently staked
+    }
+
     /// maps account to asset to stake
     mapping(address => mapping(address => StakeInfo)) private stakes;
 
-    uint32 public constant TWO_WEEKS = 1209600;
-    address public constant ETH = address(0);
+    uint32 public constant ONE_DAY = 60 * 60 * 24;
 
-    /// @inheritdoc IStakeManager
     function getStakeInfo(
         address account,
         address asset
@@ -31,13 +60,12 @@ abstract contract StakeManager is IStakeManager, ReentrancyGuard {
         return stakes[account][asset];
     }
 
-    /// @inheritdoc IStakeManager
-    function stakeOf(address account, address asset) public view returns (uint256) {
-        return stakes[account][asset].stake;
+    function stakeOf(address account, address asset) public view returns (uint128) {
+        return stakes[account][asset].amount;
     }
 
     receive() external payable {
-        addStake(ETH, uint128(msg.value), TWO_WEEKS);
+        addStake(ETH, uint128(msg.value), ONE_DAY);
     }
 
     /**
@@ -50,27 +78,22 @@ abstract contract StakeManager is IStakeManager, ReentrancyGuard {
         uint128 amount,
         uint32 unstakeDelaySec
     ) public nonReentrant payable {
-        StakeInfo storage info = stakes[msg.sender][asset];
+        StakeInfo storage stakeInfo = stakes[msg.sender][asset];
 
-        uint128 unstakeTime = uint128(block.timestamp) + unstakeDelaySec;
-
-        if (unstakeDelaySec == 0 || unstakeTime < info.unstakeTime) {
+        if (unstakeDelaySec == 0) {
             revert InvalidUnstakeDelay();
         }
 
-        uint128 stake = info.stake + amount;
+        uint128 stake = stakeInfo.amount + amount;
+
         if (stake == 0) {
             revert StakeTooLow();
         }
 
-        if (stake > type(uint128).max) {
-            revert StakeTooHigh();
-        }
-
-        stakes[msg.sender][asset] = StakeInfo(
-            stake,
-            unstakeTime
-        );
+        stakeInfo.amount += amount;
+        stakeInfo.unstakeDelaySec = unstakeDelaySec;
+        stakeInfo.staked = true;
+        stakeInfo.withdrawTime = 0; // Reset withdraw time if already staking
 
         if (asset == ETH) {
             if (msg.value != amount) {
@@ -80,64 +103,59 @@ abstract contract StakeManager is IStakeManager, ReentrancyGuard {
             SafeTransferLib.safeTransferFrom(asset, msg.sender, address(this), amount);
         }
 
-        emit StakeUpdated(
-            StakeUpdateEvent.ADDED,
+        emit StakeLocked(
             msg.sender,
             asset,
             amount,
-            stake,
-            unstakeTime
-        );
-    }
-
-    function _claimStake(
-        address account,
-        address asset,
-        uint128 amount
-    ) internal {
-        StakeInfo storage info = stakes[account][asset];
-        uint128 stake = info.stake;
-
-        if (stake < amount) {
-            revert StakeTooLow();
-        }
-
-        info.stake = stake - amount;
-
-        uint128 unstakeTime = info.unstakeTime;
-
-        emit StakeUpdated(
-            StakeUpdateEvent.CLAIMED,
-            account,
-            asset,
-            amount,
-            info.stake,
-            info.unstakeTime
+            unstakeDelaySec
         );
     }
 
     /**
-     * Remove the stake.
-     * @param asset     - The asset to remove.
-     * @param recipient - The address to send removed value.
+     * Unlocks the stake, starting the withdrawal process.
+     * Users must wait for the unstake delay to pass before withdrawing their assets.
+     * @param asset - The address of the asset being unstaked
      */
-    function removeStake(
-        address asset,
-        address payable recipient
-    ) external nonReentrant {
-        StakeInfo storage info = stakes[msg.sender][asset];
-        uint128 stake = info.stake;
+    function unlockStake(address asset) external {
+        StakeInfo storage stakeInfo = stakes[msg.sender][asset];
+
+        if (stakeInfo.withdrawTime > 0) {
+            revert StakeAlreadyUnlocked();
+        }
+
+        // require(stakeInfo.staked, "No active stake");
+
+        uint48 withdrawTime = uint48(block.timestamp) + stakeInfo.unstakeDelaySec;
+        stakeInfo.withdrawTime = withdrawTime;
+        stakeInfo.staked = false; // Mark as unstaking
+
+        emit StakeUnlocked(msg.sender, asset, withdrawTime);
+    }
+
+    /**
+     * Withdraws the staked assets after the unstake delay has passed.
+     * Must first call `unlockStake` and wait for the delay to pass.
+     * @param asset - The address of the asset being withdrawn
+     * @param recipient - The address to send the withdrawn assets
+     */
+    function withdrawStake(address asset, address payable recipient) external virtual {
+        StakeInfo storage stakeInfo = stakes[msg.sender][asset];
+
+        if (stakeInfo.staked || stakeInfo.withdrawTime == 0 || stakeInfo.withdrawTime > block.timestamp) {
+            revert StakeIsLocked();
+        }
+
+        uint128 stake = stakeInfo.amount;
 
         if (stake == 0) {
             revert StakeTooLow();
         }
 
-        if (info.unstakeTime > block.timestamp) {
-            revert StakeIsLocked();
-        }
-
-        info.unstakeTime = 0;
-        info.stake = 0;
+        // Reset stake information
+        stakeInfo.amount = 0;
+        stakeInfo.withdrawTime = 0;
+        stakeInfo.staked = false;
+        stakeInfo.unstakeDelaySec = 0;
 
         if (asset == ETH) {
             SafeTransferLib.safeTransferETH(recipient, stake);
@@ -145,13 +163,25 @@ abstract contract StakeManager is IStakeManager, ReentrancyGuard {
             SafeTransferLib.safeTransfer(asset, recipient, stake);
         }
 
-        emit StakeUpdated(
-            StakeUpdateEvent.REMOVED,
-            msg.sender,
-            asset,
-            stake,
-            0,
-            0
-        );
+        emit StakeWithdrawn(msg.sender, asset, stake);
+    }
+
+
+    function _claimStake(
+        address account,
+        address asset,
+        uint128 amount
+    ) internal {
+        StakeInfo storage stakeInfo = stakes[account][asset];
+
+        uint128 stake = stakeInfo.amount;
+
+        if (stake < amount) {
+            revert StakeTooLow();
+        }
+
+        stakeInfo.amount = stake - amount;
+
+        emit StakeClaimed(account, asset, amount);
     }
 }

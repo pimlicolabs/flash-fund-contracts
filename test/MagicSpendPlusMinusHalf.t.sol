@@ -4,12 +4,13 @@ pragma solidity ^0.8.0;
 import {Test, console} from "forge-std/Test.sol";
 
 import {MagicSpendPlusMinusHalf, Request, RequestExecutionType, CallStruct} from "../src/MagicSpendPlusMinusHalf.sol";
+import {ETH} from "./../src/base/Helpers.sol";
 import {LiquidityManager} from "./../src/base/LiquidityManager.sol";
 import {TestERC20} from "./utils/TestERC20.sol";
 import {ForceReverter} from "./utils/ForceReverter.sol";
 
-import {MessageHashUtils} from "openzeppelin-contracts-v5.0.2/contracts/utils/cryptography/MessageHashUtils.sol";
-import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
+import {MessageHashUtils} from "@openzeppelin-5.0.2/contracts/utils/cryptography/MessageHashUtils.sol";
+import {SafeTransferLib} from "@solady-0.0.259/utils/SafeTransferLib.sol";
 
 
 contract MagicSpendPlusMinusHalfTest is Test {
@@ -56,10 +57,9 @@ contract MagicSpendPlusMinusHalfTest is Test {
     }
 
     function testWithdrawNativeTokenSuccess() external {
-        _deposit(address(0), amount);
-        _addStake(address(token), amount);
+        address asset = ETH;
 
-        address asset = address(0);
+        _deposit(asset, amount);
 
         Request memory request = Request({
             withdrawChainId: withdrawChainId,
@@ -72,7 +72,7 @@ contract MagicSpendPlusMinusHalfTest is Test {
             postCalls: new CallStruct[](0),
             validUntil: 0,
             validAfter: 0,
-            unstakeDelaySec: 0
+            nonce: 0
         });
 
         vm.expectEmit(address(magicSpendPlusMinusHalf));
@@ -81,7 +81,6 @@ contract MagicSpendPlusMinusHalfTest is Test {
             magicSpendPlusMinusHalf.getHash(request)
         );
 
-        vm.prank(RECIPIENT);
         vm.chainId(withdrawChainId);
 
         magicSpendPlusMinusHalf.withdraw(
@@ -92,10 +91,9 @@ contract MagicSpendPlusMinusHalfTest is Test {
     }
 
     function testWithdrawERC20TokenSuccess() external {
-        _deposit(address(token), amount);
-        _addStake(address(token), amount);
-
         address asset = address(token);
+
+        _deposit(asset, amount);
 
         Request memory request = Request({
             withdrawChainId: withdrawChainId,
@@ -108,7 +106,7 @@ contract MagicSpendPlusMinusHalfTest is Test {
             postCalls: new CallStruct[](0),
             validUntil: 0,
             validAfter: 0,
-            unstakeDelaySec: 0
+            nonce: 0
         });
 
         vm.chainId(withdrawChainId);
@@ -126,10 +124,10 @@ contract MagicSpendPlusMinusHalfTest is Test {
     }
 
     function test_RevertWhen_ValidUntilInvalid() external {
-        _deposit(address(0), amount);
-        _addStake(address(token), amount);
+        address asset = ETH;
 
-        address asset = address(0);
+        _deposit(asset, amount);
+
         uint48 testValidUntil = uint48(block.timestamp + 5);
 
         vm.warp(500);
@@ -146,7 +144,7 @@ contract MagicSpendPlusMinusHalfTest is Test {
             preCalls: new CallStruct[](0),
             postCalls: new CallStruct[](0),
             validAfter: 0,
-            unstakeDelaySec: 0
+            nonce: 0
         });
 
         bytes memory signature = signWithdrawRequest(request, signerKey);
@@ -161,10 +159,10 @@ contract MagicSpendPlusMinusHalfTest is Test {
     }
 
     function test_RevertWhen_ValidAfterInvalid() external {
-        _deposit(address(0), amount);
-        _addStake(address(token), amount);
+        address asset = ETH;
 
-        address asset = address(0);
+        _deposit(asset, amount);
+
         uint48 testValidAfter = 4096;
 
         vm.warp(500);
@@ -181,7 +179,7 @@ contract MagicSpendPlusMinusHalfTest is Test {
             preCalls: new CallStruct[](0),
             postCalls: new CallStruct[](0),
             validUntil: 0,
-            unstakeDelaySec: 0
+            nonce: 0
         });
 
         bytes memory signature = signWithdrawRequest(request, signerKey);
@@ -193,10 +191,10 @@ contract MagicSpendPlusMinusHalfTest is Test {
 
 
     function test_RevertWhen_AccountSignatureInvalid() external {
-        _deposit(address(0), amount);
-        _addStake(address(token), amount);
+        address asset = ETH;
 
-        address asset = address(0);
+        _deposit(asset, amount);
+
         (, uint256 unauthorizedSingerKey) = makeAddrAndKey("unauthorizedSinger");
 
         vm.chainId(withdrawChainId);
@@ -212,7 +210,7 @@ contract MagicSpendPlusMinusHalfTest is Test {
             postCalls: new CallStruct[](0),
             validUntil: 0,
             validAfter: 0,
-            unstakeDelaySec: 0
+            nonce: 0
         });
 
         bytes memory signature = signWithdrawRequest(request, unauthorizedSingerKey);
@@ -222,10 +220,9 @@ contract MagicSpendPlusMinusHalfTest is Test {
     }
 
     function test_RevertWhen_RequestWithdrawnTwice() external {
-        _deposit(address(0), amount);
-        _addStake(address(token), amount);
+        address asset = ETH;
 
-        address asset = address(0);
+        _deposit(asset, amount);
 
         vm.chainId(withdrawChainId);
 
@@ -240,7 +237,7 @@ contract MagicSpendPlusMinusHalfTest is Test {
             postCalls: new CallStruct[](0),
             validUntil: 0,
             validAfter: 0,
-            unstakeDelaySec: 0
+            nonce: 0
         });
 
         bytes memory signature = signWithdrawRequest(request, signerKey);
@@ -261,7 +258,7 @@ contract MagicSpendPlusMinusHalfTest is Test {
     }
 
     function test_RevertWhen_WithdrawRequestTransferFailed() external {
-        address asset = address(0);
+        address asset = ETH;
 
         vm.chainId(withdrawChainId);
 
@@ -276,7 +273,7 @@ contract MagicSpendPlusMinusHalfTest is Test {
             postCalls: new CallStruct[](0),
             validUntil: 0,
             validAfter: 0,
-            unstakeDelaySec: 0
+            nonce: 0
         });
 
         bytes memory signature = signWithdrawRequest(request, signerKey);
@@ -294,11 +291,10 @@ contract MagicSpendPlusMinusHalfTest is Test {
     }
 
     function test_RevertWhen_PreCallReverts() external {
-        _deposit(address(0), amount);
-        _addStake(address(token), amount);
-        vm.chainId(withdrawChainId);
+        address asset = ETH;
 
-        address asset = address(0);
+        _deposit(asset, amount);
+        vm.chainId(withdrawChainId);
 
         string memory revertMessage = "MAGIC";
 
@@ -313,7 +309,7 @@ contract MagicSpendPlusMinusHalfTest is Test {
             postCalls: new CallStruct[](0),
             validUntil: 0,
             validAfter: 0,
-            unstakeDelaySec: 0
+            nonce: 0
         });
         // force a revert by calling non existant function
         request.preCalls[0] = CallStruct({
@@ -321,7 +317,6 @@ contract MagicSpendPlusMinusHalfTest is Test {
             data: abi.encodeWithSignature("forceRevertWithMessage(string)", revertMessage),
             value: 0
         });
-
 
         bytes memory signature = signWithdrawRequest(request, signerKey);
 
@@ -331,11 +326,11 @@ contract MagicSpendPlusMinusHalfTest is Test {
     }
 
     function test_RevertWhen_PostCallReverts() external {
-        _deposit(address(0), amount);
-        _addStake(address(token), amount);
-        vm.chainId(withdrawChainId);
+        address asset = ETH;
 
-        address asset = address(0);
+        _deposit(asset, amount);
+
+        vm.chainId(withdrawChainId);
 
         string memory revertMessage = "MAGIC";
 
@@ -350,7 +345,7 @@ contract MagicSpendPlusMinusHalfTest is Test {
             postCalls: new CallStruct[](1),
             validUntil: 0,
             validAfter: 0,
-            unstakeDelaySec: 0
+            nonce: 0
         });
         // force a revert by calling non existant function
         request.postCalls[0] = CallStruct({
@@ -367,9 +362,9 @@ contract MagicSpendPlusMinusHalfTest is Test {
     }
 
     function testClaimNativeTokenSuccess() external {
-        _addStake(address(0), amount + fee);
+        address asset = ETH;
 
-        address asset = address(0);
+        _addStake(asset, amount + fee);
 
         Request memory request = Request({
             withdrawChainId: withdrawChainId,
@@ -382,7 +377,7 @@ contract MagicSpendPlusMinusHalfTest is Test {
             postCalls: new CallStruct[](0),
             validUntil: 0,
             validAfter: 0,
-            unstakeDelaySec: 0
+            nonce: 0
         });
 
         vm.chainId(claimChainId);
@@ -421,7 +416,7 @@ contract MagicSpendPlusMinusHalfTest is Test {
             postCalls: new CallStruct[](0),
             validUntil: 0,
             validAfter: 0,
-            unstakeDelaySec: 0
+            nonce: 0
         });
 
         vm.chainId(withdrawChainId);
@@ -462,7 +457,7 @@ contract MagicSpendPlusMinusHalfTest is Test {
         vm.prank(signer);
 
         magicSpendPlusMinusHalf.addLiquidity{
-            value: asset == address(0) ? amount_ : 0
+            value: asset == ETH ? amount_ : 0
         }(asset, amount_);
 
         vm.stopPrank();
@@ -475,7 +470,7 @@ contract MagicSpendPlusMinusHalfTest is Test {
         vm.prank(alice);
 
         magicSpendPlusMinusHalf.addStake{
-            value: asset == address(0) ? amount_ : 0
+            value: asset == ETH ? amount_ : 0
         }(asset, amount_, 1);
 
         vm.stopPrank();

@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 
-import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
-import {Ownable} from "@openzeppelin-v5.0.2/contracts/access/Ownable.sol";
+import {SafeTransferLib} from "@solady-0.0.259/utils/SafeTransferLib.sol";
+import {Ownable} from "@openzeppelin-5.0.2/contracts/access/Ownable.sol";
+import {ETH} from "./Helpers.sol";
 
 
 abstract contract LiquidityManager is Ownable {
@@ -31,7 +32,7 @@ abstract contract LiquidityManager is Ownable {
         address asset,
         uint128 amount
     ) external payable {
-        if (asset == address(0)) {
+        if (asset == ETH) {
             if (msg.value != amount) {
                 revert InsufficientLiquidity(asset);
             }
