@@ -153,7 +153,7 @@ contract MagicSpendStakeManagerTest is Test {
 
         magicSpendStakeManager.addStake{
             value: asset == ETH ? amount_ : 0
-        }(asset, amount_, 1);
+        }(asset, amount_);
 
         vm.stopPrank();
     }

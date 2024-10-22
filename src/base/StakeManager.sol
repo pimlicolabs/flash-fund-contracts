@@ -26,7 +26,7 @@ abstract contract StakeManager is ReentrancyGuard {
     error InsufficientFunds();
 
     /// Emitted when a stake is added
-    event StakeLocked(address indexed account, address indexed asset, uint256 amount, uint256 unstakeDelaySec);
+    event StakeLocked(address indexed account, address indexed asset, uint256 amount);
 
     /// Emitted when a stake is unlocked (starts the unstake process)
     event StakeUnlocked(address indexed account, address indexed asset, uint256 withdrawTime);
@@ -43,7 +43,6 @@ abstract contract StakeManager is ReentrancyGuard {
      */
     struct StakeInfo {
         uint128 amount; // The amount of staked asset
-        uint32 unstakeDelaySec; // The delay required before the stake can be withdrawn
         uint48 withdrawTime; // Timestamp when the user can withdraw their assets (after unlocking)
         bool staked; // Indicates if the asset is currently staked
     }
@@ -65,24 +64,18 @@ abstract contract StakeManager is ReentrancyGuard {
     }
 
     receive() external payable {
-        addStake(ETH, uint128(msg.value), ONE_DAY);
+        addStake(ETH, uint128(msg.value));
     }
 
     /**
      * Add to the account's stake - amount and delay
      * any pending unstake is first cancelled.
-     * @param unstakeDelaySec The new lock duration before the deposit can be withdrawn.
      */
     function addStake(
         address asset,
-        uint128 amount,
-        uint32 unstakeDelaySec
+        uint128 amount
     ) public nonReentrant payable {
         StakeInfo storage stakeInfo = stakes[msg.sender][asset];
-
-        if (unstakeDelaySec == 0) {
-            revert InvalidUnstakeDelay();
-        }
 
         uint128 stake = stakeInfo.amount + amount;
 
@@ -91,7 +84,6 @@ abstract contract StakeManager is ReentrancyGuard {
         }
 
         stakeInfo.amount += amount;
-        stakeInfo.unstakeDelaySec = unstakeDelaySec;
         stakeInfo.staked = true;
         stakeInfo.withdrawTime = 0; // Reset withdraw time if already staking
 
@@ -106,8 +98,7 @@ abstract contract StakeManager is ReentrancyGuard {
         emit StakeLocked(
             msg.sender,
             asset,
-            amount,
-            unstakeDelaySec
+            amount
         );
     }
 
@@ -125,7 +116,7 @@ abstract contract StakeManager is ReentrancyGuard {
 
         // require(stakeInfo.staked, "No active stake");
 
-        uint48 withdrawTime = uint48(block.timestamp) + stakeInfo.unstakeDelaySec;
+        uint48 withdrawTime = uint48(block.timestamp) + ONE_DAY;
         stakeInfo.withdrawTime = withdrawTime;
         stakeInfo.staked = false; // Mark as unstaking
 
@@ -158,7 +149,6 @@ abstract contract StakeManager is ReentrancyGuard {
         stakeInfo.amount = 0;
         stakeInfo.withdrawTime = 0;
         stakeInfo.staked = false;
-        stakeInfo.unstakeDelaySec = 0;
 
         if (asset == ETH) {
             SafeTransferLib.safeTransferETH(recipient, stake);
