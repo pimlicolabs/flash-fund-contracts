@@ -22,6 +22,12 @@ contract MagicSpendStakeManager is Ownable, StakeManager {
     /// @notice Thrown when the request was submitted with an invalid chain id.
     error RequestInvalidChain();
 
+    /// @notice Thrown when the request was submitted past its validUntil.
+    error RequestExpired();
+
+    /// @notice Thrown when the request was submitted before its validAfter.
+    error RequestNotYetValid();
+
     /// @notice The claim request was submitted with an invalid claim id.
     error InvalidClaimId();
 
@@ -64,6 +70,14 @@ contract MagicSpendStakeManager is Ownable, StakeManager {
 
         if (requestStatuses[hash_]) {
             revert AlreadyUsed();
+        }
+
+        if (request.validUntil != 0 && block.timestamp > request.validUntil) {
+            revert RequestExpired();
+        }
+
+        if (request.validAfter != 0 && block.timestamp < request.validAfter) {
+            revert RequestNotYetValid();
         }
 
         // Derive the particular claim
@@ -136,8 +150,7 @@ contract MagicSpendStakeManager is Ownable, StakeManager {
                 claim_.asset,
                 claim_.amount,
                 claim_.fee,
-                claim_.chainId,
-                claim_.nonce
+                claim_.chainId
             )
         );
 
@@ -153,6 +166,13 @@ contract MagicSpendStakeManager is Ownable, StakeManager {
             hashes[i] = getClaimStructHash(request.claims[i]);
         }
 
-        return keccak256(abi.encodePacked(hashes));
+        return keccak256(
+            abi.encodePacked(
+                hashes,
+                request.salt,
+                request.validUntil,
+                request.validAfter
+            )
+        );
     }
 }

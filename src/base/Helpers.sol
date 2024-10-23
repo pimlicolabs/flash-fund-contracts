@@ -31,8 +31,8 @@ struct WithdrawRequest {
     uint48 validUntil;
     /// @dev The time in which this request is valid after.
     uint48 validAfter;
-    /// @dev The nonce of the request.
-    uint48 nonce;
+    /// @dev The salt of the request.
+    uint48 salt;
 }
 
 struct ClaimStruct {
@@ -44,10 +44,15 @@ struct ClaimStruct {
     uint128 fee;
     /// @dev Chain id of the network, where the request will be claimed.
     uint128 chainId;
-    /// @dev The nonce of the request.
-    uint48 nonce;
 }
 
 struct ClaimRequest {
+    /// @dev List of claims, one claim per chain id
     ClaimStruct[] claims;
+    /// @dev The time in which the request is valid until.
+    uint48 validUntil;
+    /// @dev The time in which the request is valid after.
+    uint48 validAfter;
+    /// @dev The salt of the request.
+    uint48 salt;
 }

@@ -22,16 +22,16 @@ import {SafeTransferLib} from "@solady-0.0.259/utils/SafeTransferLib.sol";
 /// @dev Inherits from Ownable.
 /// @custom:security-contact security@pimlico.io
 contract MagicSpendLiquidityManager is Ownable, Signer, LiquidityManager {
-    /// @notice Thrown when the request was submitted past its validUntil.
-    error RequestExpired();
-
     /// @notice Thrown when the request was submitted with an invalid chain id.
     error RequestInvalidChain();
+
+    /// @notice Thrown when the request was submitted past its validUntil.
+    error RequestExpired();
 
     /// @notice Thrown when the request was submitted before its validAfter.
     error RequestNotYetValid();
 
-    /// @notice The withdraw request was initiated with a invalid nonce.
+    /// @notice The withdraw request was initiated with invalid signature.
     error SignatureInvalid();
 
     /// @notice The withdraw request was already withdrawn.
@@ -174,7 +174,7 @@ contract MagicSpendLiquidityManager is Ownable, Signer, LiquidityManager {
                 request.recipient,
                 callsDigest,
                 validityDigest,
-                request.nonce
+                request.salt
             )
         );
 

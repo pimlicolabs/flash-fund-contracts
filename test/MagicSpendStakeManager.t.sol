@@ -45,21 +45,23 @@ contract MagicSpendStakeManagerTest is Test {
         token.approve(address(magicSpendStakeManager), 100 ether);
     }
 
-    function testClaimNativeTokenSuccess() external {
+    function test_ClaimNativeTokenSuccess() external {
         address asset = ETH;
 
         _addStake(asset, amount + fee);
 
         ClaimRequest memory request = ClaimRequest({
-            claims: new ClaimStruct[](1)
+            claims: new ClaimStruct[](1),
+            validUntil: 0,
+            validAfter: 0,
+            salt: 0
         });
 
         request.claims[0] = ClaimStruct({
             asset: asset,
             amount: amount,
             fee: fee,
-            chainId: chainId,
-            nonce: 0
+            chainId: chainId
         });
 
         vm.chainId(chainId);
@@ -87,21 +89,23 @@ contract MagicSpendStakeManagerTest is Test {
         );
     }
 
-    function testClaimERC20TokenSuccess() external {
+    function test_ClaimERC20TokenSuccess() external {
         address asset = address(token);
 
         _addStake(asset, amount + fee);
 
         ClaimRequest memory request = ClaimRequest({
-            claims: new ClaimStruct[](1)
+            claims: new ClaimStruct[](1),
+            validUntil: 0,
+            validAfter: 0,
+            salt: 0
         });
 
         request.claims[0] = ClaimStruct({
             asset: asset,
             amount: amount,
             fee: fee,
-            chainId: chainId,
-            nonce: 0
+            chainId: chainId
         });
 
         vm.chainId(chainId);

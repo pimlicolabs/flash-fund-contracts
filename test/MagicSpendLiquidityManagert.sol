@@ -58,7 +58,7 @@ contract MagicSpendLiquidityManagerTest is Test {
             postCalls: new CallStruct[](0),
             validUntil: 0,
             validAfter: 0,
-            nonce: 0
+            salt: 0
         });
 
         vm.expectEmit(address(magicSpendLiquidityManager));
@@ -92,7 +92,7 @@ contract MagicSpendLiquidityManagerTest is Test {
             postCalls: new CallStruct[](0),
             validUntil: 0,
             validAfter: 0,
-            nonce: 0
+            salt: 0
         });
 
         vm.expectEmit(address(magicSpendLiquidityManager));
@@ -132,7 +132,7 @@ contract MagicSpendLiquidityManagerTest is Test {
             preCalls: new CallStruct[](0),
             postCalls: new CallStruct[](0),
             validAfter: 0,
-            nonce: 0
+            salt: 0
         });
 
         bytes memory signature = signWithdrawRequest(request, signerKey);
@@ -166,7 +166,7 @@ contract MagicSpendLiquidityManagerTest is Test {
             preCalls: new CallStruct[](0),
             postCalls: new CallStruct[](0),
             validUntil: 0,
-            nonce: 0
+            salt: 0
         });
 
         bytes memory signature = signWithdrawRequest(request, signerKey);
@@ -194,7 +194,7 @@ contract MagicSpendLiquidityManagerTest is Test {
             postCalls: new CallStruct[](0),
             validUntil: 0,
             validAfter: 0,
-            nonce: 0
+            salt: 0
         });
 
         bytes memory signature = signWithdrawRequest(request, unauthorizedSingerKey);
@@ -219,12 +219,11 @@ contract MagicSpendLiquidityManagerTest is Test {
             postCalls: new CallStruct[](0),
             validUntil: 0,
             validAfter: 0,
-            nonce: 0
+            salt: 0
         });
 
         bytes memory signature = signWithdrawRequest(request, signerKey);
 
-        // force burn nonce
         vm.expectEmit(address(magicSpendLiquidityManager));
 
         emit MagicSpendLiquidityManager.RequestWithdrawn(
@@ -236,7 +235,6 @@ contract MagicSpendLiquidityManagerTest is Test {
 
         magicSpendLiquidityManager.withdraw(request, signature);
 
-        // double spending should throw nonce error
         vm.expectRevert(abi.encodeWithSelector(MagicSpendLiquidityManager.AlreadyUsed.selector));
         magicSpendLiquidityManager.withdraw(request, signature);
     }
@@ -255,7 +253,7 @@ contract MagicSpendLiquidityManagerTest is Test {
             postCalls: new CallStruct[](0),
             validUntil: 0,
             validAfter: 0,
-            nonce: 0
+            salt: 0
         });
 
         bytes memory signature = signWithdrawRequest(request, signerKey);
@@ -289,7 +287,7 @@ contract MagicSpendLiquidityManagerTest is Test {
             postCalls: new CallStruct[](0),
             validUntil: 0,
             validAfter: 0,
-            nonce: 0
+            salt: 0
         });
 
         // force a revert by calling non existant function
@@ -324,7 +322,7 @@ contract MagicSpendLiquidityManagerTest is Test {
             postCalls: new CallStruct[](1),
             validUntil: 0,
             validAfter: 0,
-            nonce: 0
+            salt: 0
         });
 
         // force a revert by calling non existant function
