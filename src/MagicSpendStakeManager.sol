@@ -57,7 +57,8 @@ contract MagicSpendStakeManager is Ownable, StakeManager {
     function claim(
         ClaimRequest calldata request,
         bytes calldata signature,
-        uint8 claimId
+        uint8 claimId,
+        uint128 amount_
     ) external nonReentrant {
         bytes32 hash_ = getClaimRequestHash(request);
 
@@ -81,7 +82,10 @@ contract MagicSpendStakeManager is Ownable, StakeManager {
             signature
         );
 
-        uint128 amount = claim_.amount + claim_.fee;
+        uint128 amount = uint128(Math.max(
+            claim_.amount + claim_.fee,
+            amount_
+        ));
 
         _claimStake(
             account,

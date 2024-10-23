@@ -77,6 +77,7 @@ contract MagicSpendStakeManagerTest is Test {
         magicSpendStakeManager.claim(
             request,
             signature,
+            0,
             0
         );
         vm.assertEq(
@@ -118,6 +119,7 @@ contract MagicSpendStakeManagerTest is Test {
         magicSpendStakeManager.claim(
             request,
             signature,
+            0,
             0
         );
 
