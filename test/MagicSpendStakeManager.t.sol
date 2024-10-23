@@ -80,7 +80,7 @@ contract MagicSpendStakeManagerTest is Test {
             request,
             signature,
             0,
-            0
+            amount + fee
         );
         vm.assertEq(
             magicSpendStakeManager.stakeOf(alice, asset),
@@ -124,7 +124,7 @@ contract MagicSpendStakeManagerTest is Test {
             request,
             signature,
             0,
-            0
+            amount + fee
         );
 
         vm.assertEq(

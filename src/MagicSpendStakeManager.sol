@@ -36,6 +36,8 @@ contract MagicSpendStakeManager is Ownable, StakeManager {
 
     error AmountTooLow();
 
+    error AmountTooHigh();
+
     /// @notice Emitted when a request has been withdrawn.
     event RequestClaimed(
         bytes32 indexed hash_,
@@ -64,7 +66,7 @@ contract MagicSpendStakeManager is Ownable, StakeManager {
         ClaimRequest calldata request,
         bytes calldata signature,
         uint8 claimId,
-        uint128 amount_
+        uint128 amount
     ) external nonReentrant {
         bytes32 hash_ = getClaimRequestHash(request);
 
@@ -96,10 +98,13 @@ contract MagicSpendStakeManager is Ownable, StakeManager {
             signature
         );
 
-        uint128 amount = uint128(Math.max(
-            claim_.amount + claim_.fee,
-            amount_
-        ));
+        if (amount > claim_.amount + claim_.fee) {
+            revert AmountTooHigh();
+        }
+
+        if (amount == 0) {
+            revert AmountTooLow();
+        }
 
         _claimStake(
             account,
