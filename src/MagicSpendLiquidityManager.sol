@@ -9,20 +9,32 @@ import {Math} from "@openzeppelin-5.0.2/contracts/utils/math/Math.sol";
 import {Ownable} from "@openzeppelin-5.0.2/contracts/access/Ownable.sol";
 import {ReentrancyGuard} from "@openzeppelin-5.0.2/contracts/utils/ReentrancyGuard.sol";
 import {SignatureChecker} from "@openzeppelin-5.0.2/contracts/utils/cryptography/SignatureChecker.sol";
+import {EIP712} from "@openzeppelin-5.0.2/contracts/utils/cryptography/EIP712.sol";
 
 import {Signer} from "./base/Signer.sol";
 import {LiquidityManager} from "./base/LiquidityManager.sol";
-import {ETH, WithdrawRequest} from "./base/Helpers.sol";
+import {ETH, WithdrawRequest, CallStruct} from "./base/Helpers.sol";
 
 import {SafeTransferLib} from "@solady-0.0.259/utils/SafeTransferLib.sol";
 
+
+import {console} from "forge-std/Test.sol";
 
 /// @title MagicSpendLiquidityManager
 /// @author Pimlico (https://github.com/pimlicolabs/magic-spend)
 /// @notice Contract that allows users to pull funds from if they provide a valid signed request.
 /// @dev Inherits from Ownable.
 /// @custom:security-contact security@pimlico.io
-contract MagicSpendLiquidityManager is Ownable, Signer, LiquidityManager {
+contract MagicSpendLiquidityManager is Ownable, Signer, LiquidityManager, EIP712 {
+    bytes32 private constant CALL_STRUCT_TYPE_HASH = keccak256(
+        "CallStruct(address to,uint256 value,bytes data)"
+    );
+
+    bytes32 private constant WITHDRAW_REQUEST_TYPE_HASH = keccak256(
+        "WithdrawRequest(address asset,uint128 amount,uint128 chainId,address recipient,CallStruct[] preCalls,CallStruct[] postCalls,uint48 validUntil,uint48 validAfter,uint48 salt)"
+        "CallStruct(address to,uint256 value,bytes data)"
+    );
+
     /// @notice Thrown when the request was submitted with an invalid chain id.
     error RequestInvalidChain();
 
@@ -59,7 +71,7 @@ contract MagicSpendLiquidityManager is Ownable, Signer, LiquidityManager {
     constructor(
         address _owner,
         address _signer
-    ) Ownable(_owner) Signer(_signer) {}
+    ) Ownable(_owner) EIP712("Pimlico Magic Spend", "1") Signer(_signer) {}
 
     /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
     /*                     EXTERNAL FUNCTIONS                     */
@@ -86,6 +98,9 @@ contract MagicSpendLiquidityManager is Ownable, Signer, LiquidityManager {
         }
 
         bytes32 hash_ = getWithdrawRequestHash(request);
+
+        console.log("liquidity-manager.hash");
+        console.logBytes32(hash_);
 
         bool signatureValid = SignatureChecker.isValidSignatureNow(
             getSigner(),
@@ -144,42 +159,38 @@ contract MagicSpendLiquidityManager is Ownable, Signer, LiquidityManager {
         );
     }
 
-    /**
-     * @notice Allows the caller to withdraw funds if a valid signature is passed.
-     * @dev At time of call, recipient will be equal to msg.sender.
-     * @param request The withdraw request to get the hash of.
-     * @return The hashed withdraw request.
-     */
-    function getWithdrawRequestHash(
-        WithdrawRequest calldata request
-    ) public view returns (bytes32) {
-        bytes32 validityDigest = keccak256(
-            abi.encode(
-                request.validUntil,
-                request.validAfter
-            )
-        );
+    function getCallStructHash(CallStruct calldata call) public pure returns (bytes32) {
+        return keccak256(abi.encode(
+            CALL_STRUCT_TYPE_HASH,
+            call.to,
+            call.value,
+            keccak256(call.data)
+        ));
+    }
 
-        bytes32 callsDigest = keccak256(
-            abi.encode(
-                request.preCalls,
-                request.postCalls
-            )
-        );
+    function getWithdrawRequestHash(WithdrawRequest calldata request) public view returns (bytes32) {
+        bytes32[] memory preCallHashes = new bytes32[](request.preCalls.length);
+        bytes32[] memory postCallHashes = new bytes32[](request.postCalls.length);
 
-        bytes32 digest = keccak256(
-            abi.encode(
-                address(this),
-                request.asset,
-                request.amount,
-                request.chainId,
-                request.recipient,
-                callsDigest,
-                validityDigest,
-                request.salt
-            )
-        );
+        for (uint256 i = 0; i < request.preCalls.length; i++) {
+            preCallHashes[i] = getCallStructHash(request.preCalls[i]);
+        }
+        
+        for (uint256 i = 0; i < request.postCalls.length; i++) {
+            postCallHashes[i] = getCallStructHash(request.postCalls[i]);
+        }
 
-        return digest;
+        return _hashTypedDataV4(keccak256(abi.encode(
+            WITHDRAW_REQUEST_TYPE_HASH,
+            request.asset,
+            request.amount,
+            request.chainId,
+            request.recipient,
+            keccak256(abi.encodePacked(preCallHashes)),
+            keccak256(abi.encodePacked(postCallHashes)),
+            request.validUntil,
+            request.validAfter,
+            request.salt
+        )));
     }
 }

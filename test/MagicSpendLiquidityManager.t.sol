@@ -61,6 +61,8 @@ contract MagicSpendLiquidityManagerTest is Test {
             salt: 0
         });
 
+        vm.chainId(chainId);
+
         vm.expectEmit(address(magicSpendLiquidityManager));
         emit MagicSpendLiquidityManager.RequestWithdrawn(
             magicSpendLiquidityManager.getWithdrawRequestHash(request),
@@ -68,8 +70,6 @@ contract MagicSpendLiquidityManagerTest is Test {
             request.asset,
             request.amount
         );
-
-        vm.chainId(chainId);
 
         magicSpendLiquidityManager.withdraw(
             request,
@@ -95,6 +95,8 @@ contract MagicSpendLiquidityManagerTest is Test {
             salt: 0
         });
 
+        vm.chainId(chainId);
+
         vm.expectEmit(address(magicSpendLiquidityManager));
         emit MagicSpendLiquidityManager.RequestWithdrawn(
             magicSpendLiquidityManager.getWithdrawRequestHash(request),
@@ -102,8 +104,6 @@ contract MagicSpendLiquidityManagerTest is Test {
             request.asset,
             request.amount
         );
-
-        vm.chainId(chainId);
 
         magicSpendLiquidityManager.withdraw(
             request,
