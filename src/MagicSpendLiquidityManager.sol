@@ -8,6 +8,7 @@ import {MessageHashUtils} from "@openzeppelin-5.0.2/contracts/utils/cryptography
 import {Math} from "@openzeppelin-5.0.2/contracts/utils/math/Math.sol";
 import {Ownable} from "@openzeppelin-5.0.2/contracts/access/Ownable.sol";
 import {ReentrancyGuard} from "@openzeppelin-5.0.2/contracts/utils/ReentrancyGuard.sol";
+import {SignatureChecker} from "@openzeppelin-5.0.2/contracts/utils/cryptography/SignatureChecker.sol";
 
 import {Signer} from "./base/Signer.sol";
 import {LiquidityManager} from "./base/LiquidityManager.sol";
@@ -86,12 +87,13 @@ contract MagicSpendLiquidityManager is Ownable, Signer, LiquidityManager {
 
         bytes32 hash_ = getWithdrawRequestHash(request);
 
-        address signer = ECDSA.recover(
-            MessageHashUtils.toEthSignedMessageHash(hash_),
+        bool signatureValid = SignatureChecker.isValidSignatureNow(
+            getSigner(),
+            hash_,
             signature
         );
 
-        if (!_isSigner(signer)) {
+        if (!signatureValid) {
             revert SignatureInvalid();
         }
 

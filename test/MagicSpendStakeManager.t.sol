@@ -51,6 +51,7 @@ contract MagicSpendStakeManagerTest is Test {
         _addStake(asset, amount + fee);
 
         ClaimRequest memory request = ClaimRequest({
+            account: alice,
             claims: new ClaimStruct[](1),
             validUntil: 0,
             validAfter: 0,
@@ -95,6 +96,7 @@ contract MagicSpendStakeManagerTest is Test {
         _addStake(asset, amount + fee);
 
         ClaimRequest memory request = ClaimRequest({
+            account: alice,
             claims: new ClaimStruct[](1),
             validUntil: 0,
             validAfter: 0,

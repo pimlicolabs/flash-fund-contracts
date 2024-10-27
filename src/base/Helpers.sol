@@ -47,6 +47,8 @@ struct ClaimStruct {
 }
 
 struct ClaimRequest {
+    /// @dev Address which stake is claimed.
+    address account;
     /// @dev List of claims, one claim per chain id
     ClaimStruct[] claims;
     /// @dev The time in which the request is valid until.

@@ -350,7 +350,7 @@ contract MagicSpendLiquidityManagerTest is Test {
 
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(
             signingKey,
-            MessageHashUtils.toEthSignedMessageHash(hash_)
+            hash_
         );
 
         return abi.encodePacked(r, s, v);

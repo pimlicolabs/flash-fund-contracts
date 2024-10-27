@@ -6,19 +6,29 @@ import {ECDSA} from "@openzeppelin-5.0.2/contracts/utils/cryptography/ECDSA.sol"
 import {MessageHashUtils} from "@openzeppelin-5.0.2/contracts/utils/cryptography/MessageHashUtils.sol";
 import {Math} from "@openzeppelin-5.0.2/contracts/utils/math/Math.sol";
 import {Ownable} from "@openzeppelin-5.0.2/contracts/access/Ownable.sol";
+import {SignatureChecker} from "@openzeppelin-5.0.2/contracts/utils/cryptography/SignatureChecker.sol";
+import {EIP712} from "@openzeppelin-5.0.2/contracts/utils/cryptography/EIP712.sol";
 
 import {StakeManager} from "./base/StakeManager.sol";
 import {ETH, ClaimRequest, ClaimStruct} from "./base/Helpers.sol";
 
 import {SafeTransferLib} from "@solady-0.0.259/utils/SafeTransferLib.sol";
 
-
 /// @title MagicSpendStakeManager
 /// @author Pimlico (https://github.com/pimlicolabs/magic-spend)
 /// @notice Contract that allows users to stake their funds.
 /// @dev Inherits from Ownable.
 /// @custom:security-contact security@pimlico.io
-contract MagicSpendStakeManager is Ownable, StakeManager {
+contract MagicSpendStakeManager is Ownable, StakeManager, EIP712 {
+    bytes32 private constant CLAIM_STRUCT_TYPE_HASH = keccak256(
+        "ClaimStruct(address asset,uint128 amount,uint128 fee,uint128 chainId)"
+    );
+
+    bytes32 private constant CLAIM_REQUEST_TYPE_HASH = keccak256(
+        "ClaimRequest(address account,ClaimStruct[] claims,uint48 validUntil,uint48 validAfter,uint48 salt)"
+        "ClaimStruct(address asset,uint128 amount,uint128 fee,uint128 chainId)"
+    );
+
     /// @notice Thrown when the request was submitted with an invalid chain id.
     error RequestInvalidChain();
 
@@ -38,6 +48,9 @@ contract MagicSpendStakeManager is Ownable, StakeManager {
 
     error AmountTooHigh();
 
+    /// @notice The claim request was initiated with invalid signature (checked against `request.account`).
+    error SignatureInvalid();
+
     /// @notice Emitted when a request has been withdrawn.
     event RequestClaimed(
         bytes32 indexed hash_,
@@ -56,7 +69,7 @@ contract MagicSpendStakeManager is Ownable, StakeManager {
 
     constructor(
         address _owner
-    ) Ownable(_owner) {}
+    ) Ownable(_owner) EIP712("Pimlico Magic Spend", "1") {}
 
     /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
     /*                     EXTERNAL FUNCTIONS                     */
@@ -93,10 +106,17 @@ contract MagicSpendStakeManager is Ownable, StakeManager {
             revert RequestInvalidChain();
         }
 
-        address account = ECDSA.recover(
+        bool signatureValid = SignatureChecker.isValidSignatureNow(
+            request.account,
             MessageHashUtils.toEthSignedMessageHash(hash_),
             signature
         );
+
+        if (!signatureValid) {
+            revert SignatureInvalid();
+        }
+
+        address account = request.account;
 
         if (amount > claim_.amount + claim_.fee) {
             revert AmountTooHigh();
@@ -146,38 +166,28 @@ contract MagicSpendStakeManager is Ownable, StakeManager {
         );
     }
 
-    function getClaimStructHash(
-        ClaimStruct memory claim_
-    ) public view returns (bytes32) {
-        bytes32 digest = keccak256(
-            abi.encode(
-                address(this),
-                claim_.asset,
-                claim_.amount,
-                claim_.fee,
-                claim_.chainId
-            )
-        );
-
-        return digest;
+    function getClaimStructHash(ClaimStruct memory claim_) public pure returns (bytes32) {
+        return keccak256(abi.encode(
+            CLAIM_STRUCT_TYPE_HASH,
+            claim_.asset,
+            claim_.amount,
+            claim_.fee,
+            claim_.chainId
+        ));
     }
 
-    function getClaimRequestHash(
-        ClaimRequest memory request
-    ) public view returns (bytes32) {
-        bytes32[] memory hashes = new bytes32[](request.claims.length);
-
+    function getClaimRequestHash(ClaimRequest memory request) public view returns (bytes32) {
+        bytes32[] memory claimHashes = new bytes32[](request.claims.length);
         for (uint256 i = 0; i < request.claims.length; i++) {
-            hashes[i] = getClaimStructHash(request.claims[i]);
+            claimHashes[i] = getClaimStructHash(request.claims[i]);
         }
-
-        return keccak256(
-            abi.encodePacked(
-                hashes,
-                request.salt,
-                request.validUntil,
-                request.validAfter
-            )
-        );
+        return _hashTypedDataV4(keccak256(abi.encode(
+            CLAIM_REQUEST_TYPE_HASH,
+            request.account,
+            keccak256(abi.encodePacked(claimHashes)),
+            request.validUntil,
+            request.validAfter,
+            request.salt
+        )));
     }
 }
