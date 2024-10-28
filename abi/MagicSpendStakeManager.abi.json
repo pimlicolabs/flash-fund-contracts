@@ -60,6 +60,11 @@
         "internalType": "struct ClaimRequest",
         "components": [
           {
+            "name": "account",
+            "type": "address",
+            "internalType": "address"
+          },
+          {
             "name": "claims",
             "type": "tuple[]",
             "internalType": "struct ClaimStruct[]",
@@ -143,6 +148,49 @@
   },
   {
     "type": "function",
+    "name": "eip712Domain",
+    "inputs": [],
+    "outputs": [
+      {
+        "name": "fields",
+        "type": "bytes1",
+        "internalType": "bytes1"
+      },
+      {
+        "name": "name",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "version",
+        "type": "string",
+        "internalType": "string"
+      },
+      {
+        "name": "chainId",
+        "type": "uint256",
+        "internalType": "uint256"
+      },
+      {
+        "name": "verifyingContract",
+        "type": "address",
+        "internalType": "address"
+      },
+      {
+        "name": "salt",
+        "type": "bytes32",
+        "internalType": "bytes32"
+      },
+      {
+        "name": "extensions",
+        "type": "uint256[]",
+        "internalType": "uint256[]"
+      }
+    ],
+    "stateMutability": "view"
+  },
+  {
+    "type": "function",
     "name": "getClaimRequestHash",
     "inputs": [
       {
@@ -150,6 +198,11 @@
         "type": "tuple",
         "internalType": "struct ClaimRequest",
         "components": [
+          {
+            "name": "account",
+            "type": "address",
+            "internalType": "address"
+          },
           {
             "name": "claims",
             "type": "tuple[]",
@@ -243,7 +296,7 @@
         "internalType": "bytes32"
       }
     ],
-    "stateMutability": "view"
+    "stateMutability": "pure"
   },
   {
     "type": "function",
@@ -432,6 +485,12 @@
   },
   {
     "type": "event",
+    "name": "EIP712DomainChanged",
+    "inputs": [],
+    "anonymous": false
+  },
+  {
+    "type": "event",
     "name": "OwnershipTransferred",
     "inputs": [
       {
@@ -603,39 +662,17 @@
   },
   {
     "type": "error",
-    "name": "ECDSAInvalidSignature",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "ECDSAInvalidSignatureLength",
-    "inputs": [
-      {
-        "name": "length",
-        "type": "uint256",
-        "internalType": "uint256"
-      }
-    ]
-  },
-  {
-    "type": "error",
-    "name": "ECDSAInvalidSignatureS",
-    "inputs": [
-      {
-        "name": "s",
-        "type": "bytes32",
-        "internalType": "bytes32"
-      }
-    ]
-  },
-  {
-    "type": "error",
     "name": "InsufficientFunds",
     "inputs": []
   },
   {
     "type": "error",
     "name": "InvalidClaimId",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidShortString",
     "inputs": []
   },
   {
@@ -687,6 +724,11 @@
   },
   {
     "type": "error",
+    "name": "SignatureInvalid",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "StakeAlreadyUnlocked",
     "inputs": []
   },
@@ -704,5 +746,16 @@
     "type": "error",
     "name": "StakeTooLow",
     "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "StringTooLong",
+    "inputs": [
+      {
+        "name": "str",
+        "type": "string",
+        "internalType": "string"
+      }
+    ]
   }
 ]
