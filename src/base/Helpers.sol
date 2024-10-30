@@ -57,4 +57,7 @@ struct ClaimRequest {
     uint48 validAfter;
     /// @dev The salt of the request.
     uint48 salt;
+    /// @dev Address which allowed to request WithdrawRequests on behalf of this ClaimRequest.
+    /// @dev If you don't need it, set it to 0x0.
+    address signer;
 }

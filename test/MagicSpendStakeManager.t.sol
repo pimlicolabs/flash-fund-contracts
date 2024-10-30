@@ -55,7 +55,8 @@ contract MagicSpendStakeManagerTest is Test {
             claims: new ClaimStruct[](1),
             validUntil: 0,
             validAfter: 0,
-            salt: 0
+            salt: 0,
+            signer: address(0)
         });
 
         request.claims[0] = ClaimStruct({
@@ -100,7 +101,8 @@ contract MagicSpendStakeManagerTest is Test {
             claims: new ClaimStruct[](1),
             validUntil: 0,
             validAfter: 0,
-            salt: 0
+            salt: 0,
+            signer: address(0)
         });
 
         request.claims[0] = ClaimStruct({

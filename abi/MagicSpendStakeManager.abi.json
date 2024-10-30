@@ -105,6 +105,11 @@
             "name": "salt",
             "type": "uint48",
             "internalType": "uint48"
+          },
+          {
+            "name": "signer",
+            "type": "address",
+            "internalType": "address"
           }
         ]
       },
@@ -244,6 +249,11 @@
             "name": "salt",
             "type": "uint48",
             "internalType": "uint48"
+          },
+          {
+            "name": "signer",
+            "type": "address",
+            "internalType": "address"
           }
         ]
       }
