@@ -3,7 +3,8 @@ pragma solidity ^0.8.0;
 
 import {SafeTransferLib} from "@solady-0.0.259/utils/SafeTransferLib.sol";
 import {OwnableUpgradeable} from "@openzeppelin-5.0.2/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import {ReentrancyGuardUpgradeable} from "@openzeppelin-5.0.2/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
+import {ReentrancyGuardUpgradeable} from
+    "@openzeppelin-5.0.2/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import {ETH} from "./Helpers.sol";
 
 abstract contract WithdrawalManager is OwnableUpgradeable, ReentrancyGuardUpgradeable {

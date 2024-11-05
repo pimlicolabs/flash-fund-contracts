@@ -56,9 +56,7 @@ contract MagicSpendStakeManager is StakeManager, OwnableUpgradeable, EIP712Upgra
     mapping(bytes32 hash_ => bool) public requestStatuses;
     mapping(address asset => uint128) public claimed;
 
-    function initialize(
-        address _owner
-    ) external initializer {
+    function initialize(address _owner) external initializer {
         __Ownable_init(_owner);
         __EIP712_init("Pimlico Magic Spend", "1");
     }

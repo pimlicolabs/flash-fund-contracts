@@ -33,9 +33,7 @@ contract MagicSpendStakeManagerTest is Test {
         (alice, aliceKey) = makeAddrAndKey("alice");
 
         address proxy = Upgrades.deployTransparentProxy(
-            "MagicSpendStakeManager.sol",
-            OWNER,
-            abi.encodeCall(MagicSpendStakeManager.initialize, (OWNER))
+            "MagicSpendStakeManager.sol", OWNER, abi.encodeCall(MagicSpendStakeManager.initialize, (OWNER))
         );
 
         magicSpendStakeManager = MagicSpendStakeManager(payable(proxy));

@@ -2,7 +2,8 @@
 pragma solidity ^0.8.0;
 
 import {SafeTransferLib} from "@solady-0.0.259/utils/SafeTransferLib.sol";
-import {ReentrancyGuardUpgradeable} from "@openzeppelin-5.0.2/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
+import {ReentrancyGuardUpgradeable} from
+    "@openzeppelin-5.0.2/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import {ETH} from "./Helpers.sol";
 
 /* solhint-disable avoid-low-level-calls */
@@ -75,6 +76,11 @@ abstract contract StakeManager is ReentrancyGuardUpgradeable {
         StakeInfo storage stakeInfo = stakes[msg.sender][asset];
 
         if (unstakeDelaySec == 0 || unstakeDelaySec > FIVE_DAYS) {
+            revert InvalidUnstakeDelay();
+        }
+
+        // If asset is already staked, unstake delay must be the same
+        if (stakeInfo.unstakeDelaySec > 0 && stakeInfo.unstakeDelaySec != unstakeDelaySec) {
             revert InvalidUnstakeDelay();
         }
 

@@ -15,7 +15,6 @@ import {ETH, WithdrawRequest, CallStruct} from "./base/Helpers.sol";
 
 import {SafeTransferLib} from "@solady-0.0.259/utils/SafeTransferLib.sol";
 
-
 /// @title MagicSpendWithdrawalManager
 /// @author Pimlico (https://github.com/pimlicolabs/magic-spend)
 /// @notice Contract that allows users to pull funds from if they provide a valid signed request.
