@@ -25,7 +25,7 @@ contract MagicSpendStakeManager is Ownable, StakeManager, EIP712 {
     );
 
     bytes32 private constant CLAIM_REQUEST_TYPE_HASH = keccak256(
-        "ClaimRequest(address account,ClaimStruct[] claims,uint48 validUntil,uint48 validAfter,uint48 salt)"
+        "ClaimRequest(address account,ClaimStruct[] claims,uint48 validUntil,uint48 validAfter,uint48 salt,address signer)"
         "ClaimStruct(address asset,uint128 amount,uint128 fee,uint128 chainId)"
     );
 
@@ -187,7 +187,8 @@ contract MagicSpendStakeManager is Ownable, StakeManager, EIP712 {
             keccak256(abi.encodePacked(claimHashes)),
             request.validUntil,
             request.validAfter,
-            request.salt
+            request.salt,
+            request.signer
         )));
     }
 }
