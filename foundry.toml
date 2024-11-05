@@ -7,22 +7,3 @@ libs = ["lib", "dependencies"]
 forge-std = "1.9.3"
 solady = { version = "0.0.259", git = "https://github.com/Vectorized/solady.git", rev = "7deab021af0426307ae79d091c4d1e26e9e89cf0" }
 openzeppelin = { version = "5.0.2", git = "https://github.com/OpenZeppelin/openzeppelin-contracts.git", rev = "bc1df46eac3b897bc343952fccac3fad8a3095bc" }
-
-# See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
-
-[soldeer]
-# whether soldeer manages remappings
-remappings_generate = true
-
-# whether soldeer re-generates all remappings when installing, updating or uninstalling deps
-remappings_regenerate = false
-
-# whether to suffix the remapping with the version: `name-a.b.c`
-remappings_version = true
-
-# a prefix to add to the remappings ("@" would give `@name`)
-remappings_prefix = "@"
-
-# where to store the remappings ("txt" for `remappings.txt` or "config" for `foundry.toml`)
-# ignored when `soldeer.toml` is used as config (uses `remappings.txt`)
-remappings_location = "txt"
