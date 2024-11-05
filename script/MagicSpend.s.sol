@@ -17,8 +17,6 @@ contract MagicSpend_Deploy is Script {
         address signer = vm.rememberKey(vm.envUint("SIGNER"));
         address alice = vm.rememberKey(vm.envUint("ALICE"));
 
-        // bytes32 salt = vm.envBytes32("SALT");
-
         vm.startBroadcast(deployer);
         address proxyStakeManager = Upgrades.deployTransparentProxy(
             "MagicSpendStakeManager.sol", owner, abi.encodeCall(MagicSpendStakeManager.initialize, (owner))
@@ -33,7 +31,9 @@ contract MagicSpend_Deploy is Script {
         );
 
         MagicSpendWithdrawalManager withdrawalManager = MagicSpendWithdrawalManager(payable(proxyWithdrawalManager));
+        vm.stopBroadcast();
 
+        vm.startBroadcast(owner);
         withdrawalManager.addLiquidity{value: 0.01 ether}(ETH, 0.01 ether);
         vm.stopBroadcast();
 
