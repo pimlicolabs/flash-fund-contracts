@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import {Test, console} from "forge-std/Test.sol";
 
 import {ETH, WithdrawRequest, ClaimRequest, ClaimStruct, CallStruct} from "./../src/base/Helpers.sol";
-import {LiquidityManager} from "./../src/base/LiquidityManager.sol";
+import {WithdrawalManager} from "./../src/base/WithdrawalManager.sol";
 import {TestERC20} from "./utils/TestERC20.sol";
 import {ForceReverter} from "./utils/ForceReverter.sol";
 

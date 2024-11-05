@@ -4,13 +4,13 @@ pragma solidity ^0.8.0;
 import {Test, console} from "forge-std/Test.sol";
 
 import {ETH, WithdrawRequest, ClaimRequest, ClaimStruct, CallStruct} from "./../src/base/Helpers.sol";
-import {LiquidityManager} from "./../src/base/LiquidityManager.sol";
+import {WithdrawalManager} from "./../src/base/WithdrawalManager.sol";
 import {TestERC20} from "./utils/TestERC20.sol";
 import {ForceReverter} from "./utils/ForceReverter.sol";
 
 import {MessageHashUtils} from "@openzeppelin-5.0.2/contracts/utils/cryptography/MessageHashUtils.sol";
 import {SafeTransferLib} from "@solady-0.0.259/utils/SafeTransferLib.sol";
-import {MagicSpendLiquidityManager} from "./../src/MagicSpendLiquidityManager.sol";
+import {MagicSpendWithdrawalManager} from "./../src/MagicSpendWithdrawalManager.sol";
 
 
 contract MagicSpendLiquidityManagerTest is Test {
@@ -25,13 +25,13 @@ contract MagicSpendLiquidityManagerTest is Test {
     uint256 signerKey;
 
     ForceReverter forceReverter;
-    MagicSpendLiquidityManager magicSpendLiquidityManager;
+    MagicSpendWithdrawalManager magicSpendWithdrawalManager;
     TestERC20 token;
 
     function setUp() external {
         (signer, signerKey) = makeAddrAndKey("signer");
 
-        magicSpendLiquidityManager = new MagicSpendLiquidityManager(OWNER, signer);
+        magicSpendWithdrawalManager = new MagicSpendWithdrawalManager(OWNER, signer);
 
         token = new TestERC20(18);
         forceReverter = new ForceReverter();
@@ -41,7 +41,7 @@ contract MagicSpendLiquidityManagerTest is Test {
         vm.prank(OWNER);
         token.sudoMint(OWNER, 100 ether);
         vm.prank(OWNER);
-        token.approve(address(magicSpendLiquidityManager), 100 ether);
+        token.approve(address(magicSpendWithdrawalManager), 100 ether);
     }
 
     function testWithdrawNativeTokenSuccess() external {
@@ -63,15 +63,15 @@ contract MagicSpendLiquidityManagerTest is Test {
 
         vm.chainId(chainId);
 
-        vm.expectEmit(address(magicSpendLiquidityManager));
-        emit MagicSpendLiquidityManager.RequestWithdrawn(
-            magicSpendLiquidityManager.getWithdrawRequestHash(request),
+        vm.expectEmit(address(magicSpendWithdrawalManager));
+        emit MagicSpendWithdrawalManager.RequestWithdrawn(
+            magicSpendWithdrawalManager.getWithdrawRequestHash(request),
             request.recipient,
             request.asset,
             request.amount
         );
 
-        magicSpendLiquidityManager.withdraw(
+        magicSpendWithdrawalManager.withdraw(
             request,
             signWithdrawRequest(request, signerKey)
         );
@@ -97,15 +97,15 @@ contract MagicSpendLiquidityManagerTest is Test {
 
         vm.chainId(chainId);
 
-        vm.expectEmit(address(magicSpendLiquidityManager));
-        emit MagicSpendLiquidityManager.RequestWithdrawn(
-            magicSpendLiquidityManager.getWithdrawRequestHash(request),
+        vm.expectEmit(address(magicSpendWithdrawalManager));
+        emit MagicSpendWithdrawalManager.RequestWithdrawn(
+            magicSpendWithdrawalManager.getWithdrawRequestHash(request),
             request.recipient,
             request.asset,
             request.amount
         );
 
-        magicSpendLiquidityManager.withdraw(
+        magicSpendWithdrawalManager.withdraw(
             request,
             signWithdrawRequest(request, signerKey)
         );
@@ -138,9 +138,9 @@ contract MagicSpendLiquidityManagerTest is Test {
         bytes memory signature = signWithdrawRequest(request, signerKey);
 
         // should throw if withdraw request was sent pass expiry.
-        vm.expectRevert(abi.encodeWithSelector(MagicSpendLiquidityManager.RequestExpired.selector));
+        vm.expectRevert(abi.encodeWithSelector(MagicSpendWithdrawalManager.RequestExpired.selector));
 
-        magicSpendLiquidityManager.withdraw(
+        magicSpendWithdrawalManager.withdraw(
             request,
             signature
         );
@@ -172,8 +172,8 @@ contract MagicSpendLiquidityManagerTest is Test {
         bytes memory signature = signWithdrawRequest(request, signerKey);
 
         // should throw if withdraw request was sent too early.
-        vm.expectRevert(abi.encodeWithSelector(MagicSpendLiquidityManager.RequestNotYetValid.selector));
-        magicSpendLiquidityManager.withdraw(request, signature);
+        vm.expectRevert(abi.encodeWithSelector(MagicSpendWithdrawalManager.RequestNotYetValid.selector));
+        magicSpendWithdrawalManager.withdraw(request, signature);
     }
 
     function test_RevertWhen_AccountSignatureInvalid() external {
@@ -199,8 +199,8 @@ contract MagicSpendLiquidityManagerTest is Test {
 
         bytes memory signature = signWithdrawRequest(request, unauthorizedSingerKey);
 
-        vm.expectRevert(abi.encodeWithSelector(MagicSpendLiquidityManager.SignatureInvalid.selector));
-        magicSpendLiquidityManager.withdraw(request, signature);
+        vm.expectRevert(abi.encodeWithSelector(MagicSpendWithdrawalManager.SignatureInvalid.selector));
+        magicSpendWithdrawalManager.withdraw(request, signature);
     }
 
     function test_RevertWhen_RequestWithdrawnTwice() external {
@@ -224,19 +224,19 @@ contract MagicSpendLiquidityManagerTest is Test {
 
         bytes memory signature = signWithdrawRequest(request, signerKey);
 
-        vm.expectEmit(address(magicSpendLiquidityManager));
+        vm.expectEmit(address(magicSpendWithdrawalManager));
 
-        emit MagicSpendLiquidityManager.RequestWithdrawn(
-            magicSpendLiquidityManager.getWithdrawRequestHash(request),
+        emit MagicSpendWithdrawalManager.RequestWithdrawn(
+            magicSpendWithdrawalManager.getWithdrawRequestHash(request),
             request.recipient,
             request.asset,
             request.amount
         );
 
-        magicSpendLiquidityManager.withdraw(request, signature);
+        magicSpendWithdrawalManager.withdraw(request, signature);
 
-        vm.expectRevert(abi.encodeWithSelector(MagicSpendLiquidityManager.AlreadyUsed.selector));
-        magicSpendLiquidityManager.withdraw(request, signature);
+        vm.expectRevert(abi.encodeWithSelector(MagicSpendWithdrawalManager.AlreadyUsed.selector));
+        magicSpendWithdrawalManager.withdraw(request, signature);
     }
 
     function test_RevertWhen_WithdrawRequestTransferFailed() external {
@@ -260,14 +260,14 @@ contract MagicSpendLiquidityManagerTest is Test {
 
         // should throw when ETH withdraw request could not be fulfilled due to insufficient funds.
         vm.expectRevert(abi.encodeWithSelector(SafeTransferLib.ETHTransferFailed.selector));
-        magicSpendLiquidityManager.withdraw(request, signature);
+        magicSpendWithdrawalManager.withdraw(request, signature);
 
         // should throw when ERC20 withdraw request could not be fulfilled due to insufficient funds.
         request.asset = address(token);
         signature = signWithdrawRequest(request, signerKey);
 
         vm.expectRevert(abi.encodeWithSelector(SafeTransferLib.TransferFailed.selector));
-        magicSpendLiquidityManager.withdraw(request, signature);
+        magicSpendWithdrawalManager.withdraw(request, signature);
     }
 
     function test_RevertWhen_PreCallReverts() external {
@@ -300,8 +300,8 @@ contract MagicSpendLiquidityManagerTest is Test {
         bytes memory signature = signWithdrawRequest(request, signerKey);
 
         bytes memory revertBytes = abi.encodeWithSelector(ForceReverter.RevertWithMsg.selector, revertMessage);
-        vm.expectRevert(abi.encodeWithSelector(MagicSpendLiquidityManager.PreCallReverted.selector, revertBytes));
-        magicSpendLiquidityManager.withdraw(request, signature);
+        vm.expectRevert(abi.encodeWithSelector(MagicSpendWithdrawalManager.PreCallReverted.selector, revertBytes));
+        magicSpendWithdrawalManager.withdraw(request, signature);
     }
 
     function test_RevertWhen_PostCallReverts() external {
@@ -335,8 +335,8 @@ contract MagicSpendLiquidityManagerTest is Test {
         bytes memory signature = signWithdrawRequest(request, signerKey);
 
         bytes memory revertBytes = abi.encodeWithSelector(ForceReverter.RevertWithMsg.selector, revertMessage);
-        vm.expectRevert(abi.encodeWithSelector(MagicSpendLiquidityManager.PostCallReverted.selector, revertBytes));
-        magicSpendLiquidityManager.withdraw(request, signature);
+        vm.expectRevert(abi.encodeWithSelector(MagicSpendWithdrawalManager.PostCallReverted.selector, revertBytes));
+        magicSpendWithdrawalManager.withdraw(request, signature);
     }
 
     // // = = = Helpers = = =
@@ -346,7 +346,7 @@ contract MagicSpendLiquidityManagerTest is Test {
         view
         returns (bytes memory signature)
     {
-        bytes32 hash_ = magicSpendLiquidityManager.getWithdrawRequestHash(request);
+        bytes32 hash_ = magicSpendWithdrawalManager.getWithdrawRequestHash(request);
 
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(
             signingKey,
@@ -362,7 +362,7 @@ contract MagicSpendLiquidityManagerTest is Test {
     ) internal {
         vm.prank(OWNER);
 
-        magicSpendLiquidityManager.addLiquidity{
+        magicSpendWithdrawalManager.addLiquidity{
             value: asset == ETH ? amount_ : 0
         }(asset, amount_);
 

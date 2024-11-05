@@ -12,7 +12,7 @@ import {SignatureChecker} from "@openzeppelin-5.0.2/contracts/utils/cryptography
 import {EIP712} from "@openzeppelin-5.0.2/contracts/utils/cryptography/EIP712.sol";
 
 import {Signer} from "./base/Signer.sol";
-import {LiquidityManager} from "./base/LiquidityManager.sol";
+import {WithdrawalManager} from "./base/WithdrawalManager.sol";
 import {ETH, WithdrawRequest, CallStruct} from "./base/Helpers.sol";
 
 import {SafeTransferLib} from "@solady-0.0.259/utils/SafeTransferLib.sol";
@@ -20,12 +20,12 @@ import {SafeTransferLib} from "@solady-0.0.259/utils/SafeTransferLib.sol";
 
 import {console} from "forge-std/Test.sol";
 
-/// @title MagicSpendLiquidityManager
+/// @title MagicSpendWithdrawalManager
 /// @author Pimlico (https://github.com/pimlicolabs/magic-spend)
 /// @notice Contract that allows users to pull funds from if they provide a valid signed request.
 /// @dev Inherits from Ownable.
 /// @custom:security-contact security@pimlico.io
-contract MagicSpendLiquidityManager is Ownable, Signer, LiquidityManager, EIP712 {
+contract MagicSpendWithdrawalManager is Ownable, Signer, WithdrawalManager, EIP712 {
     bytes32 private constant CALL_STRUCT_TYPE_HASH = keccak256(
         "CallStruct(address to,uint256 value,bytes data)"
     );

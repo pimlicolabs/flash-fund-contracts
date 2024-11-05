@@ -7,7 +7,7 @@ import {ReentrancyGuard} from "@openzeppelin-5.0.2/contracts/utils/ReentrancyGua
 import {ETH} from "./Helpers.sol";
 
 
-abstract contract LiquidityManager is Ownable, ReentrancyGuard {
+abstract contract WithdrawalManager is Ownable, ReentrancyGuard {
     event LiquidityAdded(
         address asset,
         uint128 amount

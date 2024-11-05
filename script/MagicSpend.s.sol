@@ -3,14 +3,14 @@ pragma solidity ^0.8.13;
 
 import "forge-std/Script.sol";
 import {MagicSpendStakeManager} from "./../src/MagicSpendStakeManager.sol";
-import {MagicSpendLiquidityManager} from "./../src/MagicSpendLiquidityManager.sol";
+import {MagicSpendWithdrawalManager} from "./../src/MagicSpendWithdrawalManager.sol";
 import {ETH} from "./../src/base/Helpers.sol";
 
 
 contract MagicSpend_Deploy is Script {
     function setUp() public {}
 
-    function run() public returns (address _stakeManager, address _liquidityManager) {
+    function run() public returns (address _stakeManager, address _withdrawalManager) {
         address deployer = vm.rememberKey(vm.envUint("DEPLOYER"));
         address owner = vm.rememberKey(vm.envUint("OWNER"));
         address signer = vm.rememberKey(vm.envUint("SIGNER"));
@@ -23,12 +23,12 @@ contract MagicSpend_Deploy is Script {
             owner
         );
 
-        MagicSpendLiquidityManager liquidityManager = new MagicSpendLiquidityManager{salt: salt}(
+        MagicSpendWithdrawalManager withdrawalManager = new MagicSpendWithdrawalManager{salt: salt}(
             owner,
             signer
         );
 
-        liquidityManager.addLiquidity{value: 0.01 ether}(ETH, 0.01 ether);
+        withdrawalManager.addLiquidity{value: 0.01 ether}(ETH, 0.01 ether);
         vm.stopBroadcast();
 
         vm.startBroadcast(alice);
@@ -37,7 +37,7 @@ contract MagicSpend_Deploy is Script {
 
         return (
             address(stakeManager),
-            address(liquidityManager)
+            address(withdrawalManager)
         );
     }
 }
