@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.26;
+pragma solidity ^0.8.0;
 
 import {SafeTransferLib} from "@solady-0.0.259/utils/SafeTransferLib.sol";
 import {Ownable} from "@openzeppelin-5.0.2/contracts/access/Ownable.sol";

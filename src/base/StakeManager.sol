@@ -1,5 +1,5 @@
-// SPDX-License-Identifier: GPL-3.0-only
-pragma solidity ^0.8.23;
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
 
 import {SafeTransferLib} from "@solady-0.0.259/utils/SafeTransferLib.sol";
 import {ReentrancyGuard} from "@openzeppelin-5.0.2/contracts/utils/ReentrancyGuard.sol";
@@ -51,6 +51,8 @@ abstract contract StakeManager is ReentrancyGuard {
     mapping(address => mapping(address => StakeInfo)) private stakes;
 
     uint32 public constant ONE_DAY = 60 * 60 * 24;
+    uint32 public constant THREE_DAYS = ONE_DAY * 3;
+    uint32 public constant FIVE_DAYS = ONE_DAY * 5;
 
     function getStakeInfo(address account, address asset) public view returns (StakeInfo memory info) {
         return stakes[account][asset];
@@ -61,7 +63,7 @@ abstract contract StakeManager is ReentrancyGuard {
     }
 
     receive() external payable {
-        addStake(ETH, uint128(msg.value), ONE_DAY);
+        addStake(ETH, uint128(msg.value), THREE_DAYS);
     }
 
     /**
@@ -72,7 +74,7 @@ abstract contract StakeManager is ReentrancyGuard {
     function addStake(address asset, uint128 amount, uint32 unstakeDelaySec) public payable nonReentrant {
         StakeInfo storage stakeInfo = stakes[msg.sender][asset];
 
-        if (unstakeDelaySec == 0 || unstakeDelaySec > ONE_DAY) {
+        if (unstakeDelaySec == 0 || unstakeDelaySec > FIVE_DAYS) {
             revert InvalidUnstakeDelay();
         }
 
