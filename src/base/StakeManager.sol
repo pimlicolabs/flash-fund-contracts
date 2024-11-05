@@ -2,7 +2,7 @@
 pragma solidity ^0.8.0;
 
 import {SafeTransferLib} from "@solady-0.0.259/utils/SafeTransferLib.sol";
-import {ReentrancyGuard} from "@openzeppelin-5.0.2/contracts/utils/ReentrancyGuard.sol";
+import {ReentrancyGuardUpgradeable} from "@openzeppelin-5.0.2/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import {ETH} from "./Helpers.sol";
 
 /* solhint-disable avoid-low-level-calls */
@@ -16,7 +16,7 @@ import {ETH} from "./Helpers.sol";
  * - Stake is claimed every time `MagicSpendPlusMinusHalf.claim` is called
  * - To remove stake, call `removeStake` with the asset and recipient. No partical unstakes are allowed.
  */
-abstract contract StakeManager is ReentrancyGuard {
+abstract contract StakeManager is ReentrancyGuardUpgradeable {
     error InvalidUnstakeDelay();
     error StakeTooLow();
     error StakeTooHigh();

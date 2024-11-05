@@ -12,6 +12,8 @@ import {MessageHashUtils} from "@openzeppelin-5.0.2/contracts/utils/cryptography
 import {SafeTransferLib} from "@solady-0.0.259/utils/SafeTransferLib.sol";
 import {MagicSpendStakeManager} from "./../src/MagicSpendStakeManager.sol";
 
+import {Upgrades} from "@openzeppelin-0.3.6/foundry-upgrades/Upgrades.sol";
+
 contract MagicSpendStakeManagerTest is Test {
     address immutable OWNER = makeAddr("owner");
     address immutable RECIPIENT = makeAddr("recipient");
@@ -30,7 +32,13 @@ contract MagicSpendStakeManagerTest is Test {
     function setUp() external {
         (alice, aliceKey) = makeAddrAndKey("alice");
 
-        magicSpendStakeManager = new MagicSpendStakeManager(OWNER);
+        address proxy = Upgrades.deployTransparentProxy(
+            "MagicSpendStakeManager.sol",
+            OWNER,
+            abi.encodeCall(MagicSpendStakeManager.initialize, (OWNER))
+        );
+
+        magicSpendStakeManager = MagicSpendStakeManager(payable(proxy));
 
         token = new TestERC20(18);
         forceReverter = new ForceReverter();

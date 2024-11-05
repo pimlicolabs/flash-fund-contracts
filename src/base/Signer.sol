@@ -3,13 +3,12 @@ pragma solidity ^0.8.0;
 
 /* solhint-disable reason-string */
 
-import {Ownable} from "@openzeppelin-5.0.2/contracts/access/Ownable.sol";
-import {IERC165} from "@openzeppelin-5.0.2/contracts/utils/introspection/IERC165.sol";
+import {OwnableUpgradeable} from "@openzeppelin-5.0.2/contracts-upgradeable/access/OwnableUpgradeable.sol";
 
 /**
  * Helper class for creating a contract with signer.
  */
-abstract contract Signer is Ownable {
+abstract contract Signer is OwnableUpgradeable {
     /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
     /*                           EVENTS                           */
     /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
@@ -24,11 +23,7 @@ abstract contract Signer is Ownable {
     /// @notice Signer address.
     address private signer;
 
-    /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
-    /*                       CONSTRUCTOR                          */
-    /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
-
-    constructor(address _signer) {
+    function __Signer_init(address _signer) internal {
         _addSigner(_signer);
     }
 

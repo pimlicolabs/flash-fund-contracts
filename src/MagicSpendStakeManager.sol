@@ -5,10 +5,9 @@ import {IERC20} from "@openzeppelin-5.0.2/contracts/token/ERC20/IERC20.sol";
 import {ECDSA} from "@openzeppelin-5.0.2/contracts/utils/cryptography/ECDSA.sol";
 import {MessageHashUtils} from "@openzeppelin-5.0.2/contracts/utils/cryptography/MessageHashUtils.sol";
 import {Math} from "@openzeppelin-5.0.2/contracts/utils/math/Math.sol";
-import {Ownable} from "@openzeppelin-5.0.2/contracts/access/Ownable.sol";
 import {SignatureChecker} from "@openzeppelin-5.0.2/contracts/utils/cryptography/SignatureChecker.sol";
-import {EIP712} from "@openzeppelin-5.0.2/contracts/utils/cryptography/EIP712.sol";
-
+import {EIP712Upgradeable} from "@openzeppelin-5.0.2/contracts-upgradeable/utils/cryptography/EIP712Upgradeable.sol";
+import {OwnableUpgradeable} from "@openzeppelin-5.0.2/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {StakeManager} from "./base/StakeManager.sol";
 import {ETH, ClaimRequest, ClaimStruct} from "./base/Helpers.sol";
 
@@ -17,9 +16,8 @@ import {SafeTransferLib} from "@solady-0.0.259/utils/SafeTransferLib.sol";
 /// @title MagicSpendStakeManager
 /// @author Pimlico (https://github.com/pimlicolabs/magic-spend)
 /// @notice Contract that allows users to stake their funds.
-/// @dev Inherits from Ownable.
 /// @custom:security-contact security@pimlico.io
-contract MagicSpendStakeManager is Ownable, StakeManager, EIP712 {
+contract MagicSpendStakeManager is StakeManager, OwnableUpgradeable, EIP712Upgradeable {
     bytes32 private constant CLAIM_STRUCT_TYPE_HASH =
         keccak256("ClaimStruct(address asset,uint128 amount,uint128 fee,uint128 chainId)");
 
@@ -58,7 +56,12 @@ contract MagicSpendStakeManager is Ownable, StakeManager, EIP712 {
     mapping(bytes32 hash_ => bool) public requestStatuses;
     mapping(address asset => uint128) public claimed;
 
-    constructor(address _owner) Ownable(_owner) EIP712("Pimlico Magic Spend", "1") {}
+    function initialize(
+        address _owner
+    ) external initializer {
+        __Ownable_init(_owner);
+        __EIP712_init("Pimlico Magic Spend", "1");
+    }
 
     /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
     /*                     EXTERNAL FUNCTIONS                     */

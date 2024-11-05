@@ -5,25 +5,23 @@ import {IERC20} from "@openzeppelin-5.0.2/contracts/token/ERC20/IERC20.sol";
 import {ECDSA} from "@openzeppelin-5.0.2/contracts/utils/cryptography/ECDSA.sol";
 import {MessageHashUtils} from "@openzeppelin-5.0.2/contracts/utils/cryptography/MessageHashUtils.sol";
 import {Math} from "@openzeppelin-5.0.2/contracts/utils/math/Math.sol";
-import {Ownable} from "@openzeppelin-5.0.2/contracts/access/Ownable.sol";
-import {ReentrancyGuard} from "@openzeppelin-5.0.2/contracts/utils/ReentrancyGuard.sol";
+import {OwnableUpgradeable} from "@openzeppelin-5.0.2/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {SignatureChecker} from "@openzeppelin-5.0.2/contracts/utils/cryptography/SignatureChecker.sol";
-import {EIP712} from "@openzeppelin-5.0.2/contracts/utils/cryptography/EIP712.sol";
-
+import {EIP712Upgradeable} from "@openzeppelin-5.0.2/contracts-upgradeable/utils/cryptography/EIP712Upgradeable.sol";
+import {Initializable} from "@openzeppelin-5.0.2/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {Signer} from "./base/Signer.sol";
 import {WithdrawalManager} from "./base/WithdrawalManager.sol";
 import {ETH, WithdrawRequest, CallStruct} from "./base/Helpers.sol";
 
 import {SafeTransferLib} from "@solady-0.0.259/utils/SafeTransferLib.sol";
 
-import {console} from "forge-std/Test.sol";
 
 /// @title MagicSpendWithdrawalManager
 /// @author Pimlico (https://github.com/pimlicolabs/magic-spend)
 /// @notice Contract that allows users to pull funds from if they provide a valid signed request.
 /// @dev Inherits from Ownable.
 /// @custom:security-contact security@pimlico.io
-contract MagicSpendWithdrawalManager is Ownable, Signer, WithdrawalManager, EIP712 {
+contract MagicSpendWithdrawalManager is OwnableUpgradeable, Signer, WithdrawalManager, EIP712Upgradeable {
     bytes32 private constant CALL_STRUCT_TYPE_HASH = keccak256("CallStruct(address to,uint256 value,bytes data)");
 
     bytes32 private constant WITHDRAW_REQUEST_TYPE_HASH = keccak256(
@@ -59,7 +57,12 @@ contract MagicSpendWithdrawalManager is Ownable, Signer, WithdrawalManager, EIP7
 
     mapping(bytes32 hash_ => bool) public requestStatuses;
 
-    constructor(address _owner, address _signer) Ownable(_owner) EIP712("Pimlico Magic Spend", "1") Signer(_signer) {}
+    // constructor(address _owner, address _signer) Ownable(_owner) EIP712("Pimlico Magic Spend", "1") Signer(_signer) {}
+    function initialize(address _owner, address _signer) external initializer {
+        __Ownable_init(_owner);
+        __EIP712_init("Pimlico Magic Spend", "1");
+        __Signer_init(_signer);
+    }
 
     /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
     /*                     EXTERNAL FUNCTIONS                     */
@@ -83,9 +86,6 @@ contract MagicSpendWithdrawalManager is Ownable, Signer, WithdrawalManager, EIP7
         }
 
         bytes32 hash_ = getWithdrawRequestHash(request);
-
-        console.log("liquidity-manager.hash");
-        console.logBytes32(hash_);
 
         bool signatureValid = SignatureChecker.isValidSignatureNow(getSigner(), hash_, signature);
 
