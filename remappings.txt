@@ -1,0 +1,5 @@
+@openzeppelin-5.0.2/contracts/=lib/openzeppelin-contracts-upgradeable-v5.0.2/lib/openzeppelin-contracts/contracts/
+@openzeppelin-5.0.2/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable-v5.0.2/contracts/
+
+@solady-0.0.259/=lib/solady-v0.0.259/src/
+forge-std-1.9.3/=dependencies/forge-std-1.9.3/
