@@ -6,7 +6,6 @@ import {MagicSpendStakeManager} from "./../src/MagicSpendStakeManager.sol";
 import {MagicSpendWithdrawalManager} from "./../src/MagicSpendWithdrawalManager.sol";
 import {ETH} from "./../src/base/Helpers.sol";
 
-
 contract MagicSpend_Deploy is Script {
     function setUp() public {}
 
@@ -19,14 +18,9 @@ contract MagicSpend_Deploy is Script {
         bytes32 salt = vm.envBytes32("SALT");
 
         vm.startBroadcast(deployer);
-        MagicSpendStakeManager stakeManager = new MagicSpendStakeManager{salt: salt}(
-            owner
-        );
+        MagicSpendStakeManager stakeManager = new MagicSpendStakeManager{salt: salt}(owner);
 
-        MagicSpendWithdrawalManager withdrawalManager = new MagicSpendWithdrawalManager{salt: salt}(
-            owner,
-            signer
-        );
+        MagicSpendWithdrawalManager withdrawalManager = new MagicSpendWithdrawalManager{salt: salt}(owner, signer);
 
         withdrawalManager.addLiquidity{value: 0.01 ether}(ETH, 0.01 ether);
         vm.stopBroadcast();
@@ -35,9 +29,6 @@ contract MagicSpend_Deploy is Script {
         stakeManager.addStake{value: 0.01 ether}(ETH, 0.01 ether, 86400);
         vm.stopBroadcast();
 
-        return (
-            address(stakeManager),
-            address(withdrawalManager)
-        );
+        return (address(stakeManager), address(withdrawalManager));
     }
 }

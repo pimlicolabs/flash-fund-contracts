@@ -12,7 +12,6 @@ import {MessageHashUtils} from "@openzeppelin-5.0.2/contracts/utils/cryptography
 import {SafeTransferLib} from "@solady-0.0.259/utils/SafeTransferLib.sol";
 import {MagicSpendStakeManager} from "./../src/MagicSpendStakeManager.sol";
 
-
 contract MagicSpendStakeManagerTest is Test {
     address immutable OWNER = makeAddr("owner");
     address immutable RECIPIENT = makeAddr("recipient");
@@ -59,12 +58,7 @@ contract MagicSpendStakeManagerTest is Test {
             signer: address(0)
         });
 
-        request.claims[0] = ClaimStruct({
-            asset: asset,
-            amount: amount,
-            fee: fee,
-            chainId: chainId
-        });
+        request.claims[0] = ClaimStruct({asset: asset, amount: amount, fee: fee, chainId: chainId});
 
         vm.chainId(chainId);
 
@@ -72,23 +66,11 @@ contract MagicSpendStakeManagerTest is Test {
 
         vm.expectEmit(address(magicSpendStakeManager));
         emit MagicSpendStakeManager.RequestClaimed(
-            magicSpendStakeManager.getClaimRequestHash(request),
-            alice,
-            asset,
-            amount
+            magicSpendStakeManager.getClaimRequestHash(request), alice, asset, amount
         );
 
-        magicSpendStakeManager.claim(
-            request,
-            signature,
-            0,
-            amount + fee
-        );
-        vm.assertEq(
-            magicSpendStakeManager.stakeOf(alice, asset),
-            0 ether,
-            "Alice should lose her stake after claim"
-        );
+        magicSpendStakeManager.claim(request, signature, 0, amount + fee);
+        vm.assertEq(magicSpendStakeManager.stakeOf(alice, asset), 0 ether, "Alice should lose her stake after claim");
     }
 
     function test_ClaimERC20TokenSuccess() external {
@@ -105,12 +87,7 @@ contract MagicSpendStakeManagerTest is Test {
             signer: address(0)
         });
 
-        request.claims[0] = ClaimStruct({
-            asset: asset,
-            amount: amount,
-            fee: fee,
-            chainId: chainId
-        });
+        request.claims[0] = ClaimStruct({asset: asset, amount: amount, fee: fee, chainId: chainId});
 
         vm.chainId(chainId);
 
@@ -118,24 +95,12 @@ contract MagicSpendStakeManagerTest is Test {
 
         vm.expectEmit(address(magicSpendStakeManager));
         emit MagicSpendStakeManager.RequestClaimed(
-            magicSpendStakeManager.getClaimRequestHash(request),
-            alice,
-            asset,
-            amount
+            magicSpendStakeManager.getClaimRequestHash(request), alice, asset, amount
         );
 
-        magicSpendStakeManager.claim(
-            request,
-            signature,
-            0,
-            amount + fee
-        );
+        magicSpendStakeManager.claim(request, signature, 0, amount + fee);
 
-        vm.assertEq(
-            magicSpendStakeManager.stakeOf(alice, asset),
-            0 ether,
-            "Alice should lose her stake after claim"
-        );
+        vm.assertEq(magicSpendStakeManager.stakeOf(alice, asset), 0 ether, "Alice should lose her stake after claim");
     }
 
     // // = = = Helpers = = =
@@ -145,25 +110,17 @@ contract MagicSpendStakeManagerTest is Test {
         view
         returns (bytes memory signature)
     {
-        bytes32 hash_ = magicSpendStakeManager.getClaimRequestHash(request);   
+        bytes32 hash_ = magicSpendStakeManager.getClaimRequestHash(request);
 
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(
-            signingKey,
-            MessageHashUtils.toEthSignedMessageHash(hash_)
-        );
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signingKey, MessageHashUtils.toEthSignedMessageHash(hash_));
 
         return abi.encodePacked(r, s, v);
     }
 
-    function _addStake(
-        address asset,
-        uint128 amount_
-    ) internal {
+    function _addStake(address asset, uint128 amount_) internal {
         vm.prank(alice);
 
-        magicSpendStakeManager.addStake{
-            value: asset == ETH ? amount_ : 0
-        }(asset, amount_, 1);
+        magicSpendStakeManager.addStake{value: asset == ETH ? amount_ : 0}(asset, amount_, 1);
 
         vm.stopPrank();
     }

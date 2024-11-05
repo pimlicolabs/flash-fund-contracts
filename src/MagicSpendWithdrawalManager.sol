@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.26;
 
-
 import {IERC20} from "@openzeppelin-5.0.2/contracts/token/ERC20/IERC20.sol";
 import {ECDSA} from "@openzeppelin-5.0.2/contracts/utils/cryptography/ECDSA.sol";
 import {MessageHashUtils} from "@openzeppelin-5.0.2/contracts/utils/cryptography/MessageHashUtils.sol";
@@ -17,7 +16,6 @@ import {ETH, WithdrawRequest, CallStruct} from "./base/Helpers.sol";
 
 import {SafeTransferLib} from "@solady-0.0.259/utils/SafeTransferLib.sol";
 
-
 import {console} from "forge-std/Test.sol";
 
 /// @title MagicSpendWithdrawalManager
@@ -26,9 +24,7 @@ import {console} from "forge-std/Test.sol";
 /// @dev Inherits from Ownable.
 /// @custom:security-contact security@pimlico.io
 contract MagicSpendWithdrawalManager is Ownable, Signer, WithdrawalManager, EIP712 {
-    bytes32 private constant CALL_STRUCT_TYPE_HASH = keccak256(
-        "CallStruct(address to,uint256 value,bytes data)"
-    );
+    bytes32 private constant CALL_STRUCT_TYPE_HASH = keccak256("CallStruct(address to,uint256 value,bytes data)");
 
     bytes32 private constant WITHDRAW_REQUEST_TYPE_HASH = keccak256(
         "WithdrawRequest(address asset,uint128 amount,uint128 chainId,address recipient,CallStruct[] preCalls,CallStruct[] postCalls,uint48 validUntil,uint48 validAfter,uint48 salt)"
@@ -59,19 +55,11 @@ contract MagicSpendWithdrawalManager is Ownable, Signer, WithdrawalManager, EIP7
     error PostCallReverted(bytes revertReason);
 
     /// @notice Emitted when a request has been withdrawn.
-    event RequestWithdrawn(
-        bytes32 indexed hash_,
-        address indexed recipient,
-        address indexed asset,
-        uint256 amount
-    );
+    event RequestWithdrawn(bytes32 indexed hash_, address indexed recipient, address indexed asset, uint256 amount);
 
     mapping(bytes32 hash_ => bool) public requestStatuses;
 
-    constructor(
-        address _owner,
-        address _signer
-    ) Ownable(_owner) EIP712("Pimlico Magic Spend", "1") Signer(_signer) {}
+    constructor(address _owner, address _signer) Ownable(_owner) EIP712("Pimlico Magic Spend", "1") Signer(_signer) {}
 
     /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
     /*                     EXTERNAL FUNCTIONS                     */
@@ -81,10 +69,7 @@ contract MagicSpendWithdrawalManager is Ownable, Signer, WithdrawalManager, EIP7
      * @notice Fulfills a withdraw request only if it has a valid signature and passes validation.
      * The signature should be signed by the signer.
      */
-    function withdraw(
-        WithdrawRequest calldata request,
-        bytes calldata signature
-    ) external nonReentrant {
+    function withdraw(WithdrawRequest calldata request, bytes calldata signature) external nonReentrant {
         if (request.chainId != block.chainid) {
             revert RequestInvalidChain();
         }
@@ -102,11 +87,7 @@ contract MagicSpendWithdrawalManager is Ownable, Signer, WithdrawalManager, EIP7
         console.log("liquidity-manager.hash");
         console.logBytes32(hash_);
 
-        bool signatureValid = SignatureChecker.isValidSignatureNow(
-            getSigner(),
-            hash_,
-            signature
-        );
+        bool signatureValid = SignatureChecker.isValidSignatureNow(getSigner(), hash_, signature);
 
         if (!signatureValid) {
             revert SignatureInvalid();
@@ -151,21 +132,11 @@ contract MagicSpendWithdrawalManager is Ownable, Signer, WithdrawalManager, EIP7
 
         requestStatuses[hash_] = true;
 
-        emit RequestWithdrawn(
-            hash_,
-            request.recipient,
-            request.asset,
-            request.amount
-        );
+        emit RequestWithdrawn(hash_, request.recipient, request.asset, request.amount);
     }
 
     function getCallStructHash(CallStruct calldata call) public pure returns (bytes32) {
-        return keccak256(abi.encode(
-            CALL_STRUCT_TYPE_HASH,
-            call.to,
-            call.value,
-            keccak256(call.data)
-        ));
+        return keccak256(abi.encode(CALL_STRUCT_TYPE_HASH, call.to, call.value, keccak256(call.data)));
     }
 
     function getWithdrawRequestHash(WithdrawRequest calldata request) public view returns (bytes32) {
@@ -175,22 +146,26 @@ contract MagicSpendWithdrawalManager is Ownable, Signer, WithdrawalManager, EIP7
         for (uint256 i = 0; i < request.preCalls.length; i++) {
             preCallHashes[i] = getCallStructHash(request.preCalls[i]);
         }
-        
+
         for (uint256 i = 0; i < request.postCalls.length; i++) {
             postCallHashes[i] = getCallStructHash(request.postCalls[i]);
         }
 
-        return _hashTypedDataV4(keccak256(abi.encode(
-            WITHDRAW_REQUEST_TYPE_HASH,
-            request.asset,
-            request.amount,
-            request.chainId,
-            request.recipient,
-            keccak256(abi.encodePacked(preCallHashes)),
-            keccak256(abi.encodePacked(postCallHashes)),
-            request.validUntil,
-            request.validAfter,
-            request.salt
-        )));
+        return _hashTypedDataV4(
+            keccak256(
+                abi.encode(
+                    WITHDRAW_REQUEST_TYPE_HASH,
+                    request.asset,
+                    request.amount,
+                    request.chainId,
+                    request.recipient,
+                    keccak256(abi.encodePacked(preCallHashes)),
+                    keccak256(abi.encodePacked(postCallHashes)),
+                    request.validUntil,
+                    request.validAfter,
+                    request.salt
+                )
+            )
+        );
     }
 }

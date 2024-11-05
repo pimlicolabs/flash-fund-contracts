@@ -12,7 +12,6 @@ import {MessageHashUtils} from "@openzeppelin-5.0.2/contracts/utils/cryptography
 import {SafeTransferLib} from "@solady-0.0.259/utils/SafeTransferLib.sol";
 import {MagicSpendWithdrawalManager} from "./../src/MagicSpendWithdrawalManager.sol";
 
-
 contract MagicSpendLiquidityManagerTest is Test {
     address immutable OWNER = makeAddr("owner");
     address immutable RECIPIENT = makeAddr("recipient");
@@ -71,10 +70,7 @@ contract MagicSpendLiquidityManagerTest is Test {
             request.amount
         );
 
-        magicSpendWithdrawalManager.withdraw(
-            request,
-            signWithdrawRequest(request, signerKey)
-        );
+        magicSpendWithdrawalManager.withdraw(request, signWithdrawRequest(request, signerKey));
         vm.assertEq(RECIPIENT.balance, 5 ether, "Withdrawn funds should go to recipient");
     }
 
@@ -105,10 +101,7 @@ contract MagicSpendLiquidityManagerTest is Test {
             request.amount
         );
 
-        magicSpendWithdrawalManager.withdraw(
-            request,
-            signWithdrawRequest(request, signerKey)
-        );
+        magicSpendWithdrawalManager.withdraw(request, signWithdrawRequest(request, signerKey));
         vm.assertEq(token.balanceOf(RECIPIENT), 5 ether, "Withdrawn funds should go to recipient");
     }
 
@@ -124,7 +117,6 @@ contract MagicSpendLiquidityManagerTest is Test {
 
         WithdrawRequest memory request = WithdrawRequest({
             validUntil: testValidUntil,
-
             chainId: chainId,
             amount: amount,
             asset: asset,
@@ -140,10 +132,7 @@ contract MagicSpendLiquidityManagerTest is Test {
         // should throw if withdraw request was sent pass expiry.
         vm.expectRevert(abi.encodeWithSelector(MagicSpendWithdrawalManager.RequestExpired.selector));
 
-        magicSpendWithdrawalManager.withdraw(
-            request,
-            signature
-        );
+        magicSpendWithdrawalManager.withdraw(request, signature);
     }
 
     function test_RevertWhen_ValidAfterInvalid() external {
@@ -158,7 +147,6 @@ contract MagicSpendLiquidityManagerTest is Test {
 
         WithdrawRequest memory request = WithdrawRequest({
             validAfter: testValidAfter,
-
             chainId: chainId,
             amount: amount,
             asset: asset,
@@ -348,23 +336,15 @@ contract MagicSpendLiquidityManagerTest is Test {
     {
         bytes32 hash_ = magicSpendWithdrawalManager.getWithdrawRequestHash(request);
 
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(
-            signingKey,
-            hash_
-        );
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signingKey, hash_);
 
         return abi.encodePacked(r, s, v);
     }
 
-    function _addLiquidity(
-        address asset,
-        uint128 amount_
-    ) internal {
+    function _addLiquidity(address asset, uint128 amount_) internal {
         vm.prank(OWNER);
 
-        magicSpendWithdrawalManager.addLiquidity{
-            value: asset == ETH ? amount_ : 0
-        }(asset, amount_);
+        magicSpendWithdrawalManager.addLiquidity{value: asset == ETH ? amount_ : 0}(asset, amount_);
 
         vm.stopPrank();
     }

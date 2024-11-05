@@ -8,7 +8,6 @@ import {ETH} from "./Helpers.sol";
 /* solhint-disable avoid-low-level-calls */
 /* solhint-disable not-rely-on-time */
 
-
 /**
  * Manages stakes.
  * Stakes are locked for a period of time.
@@ -53,10 +52,7 @@ abstract contract StakeManager is ReentrancyGuard {
 
     uint32 public constant ONE_DAY = 60 * 60 * 24;
 
-    function getStakeInfo(
-        address account,
-        address asset
-    ) public view returns (StakeInfo memory info) {
+    function getStakeInfo(address account, address asset) public view returns (StakeInfo memory info) {
         return stakes[account][asset];
     }
 
@@ -73,11 +69,7 @@ abstract contract StakeManager is ReentrancyGuard {
      * any pending unstake is first cancelled.
      * @param unstakeDelaySec The new lock duration before the deposit can be withdrawn.
      */
-    function addStake(
-        address asset,
-        uint128 amount,
-        uint32 unstakeDelaySec
-    ) public nonReentrant payable {
+    function addStake(address asset, uint128 amount, uint32 unstakeDelaySec) public payable nonReentrant {
         StakeInfo storage stakeInfo = stakes[msg.sender][asset];
 
         if (unstakeDelaySec == 0 || unstakeDelaySec > ONE_DAY) {
@@ -103,12 +95,7 @@ abstract contract StakeManager is ReentrancyGuard {
             SafeTransferLib.safeTransferFrom(asset, msg.sender, address(this), amount);
         }
 
-        emit StakeLocked(
-            msg.sender,
-            asset,
-            amount,
-            unstakeDelaySec
-        );
+        emit StakeLocked(msg.sender, asset, amount, unstakeDelaySec);
     }
 
     /**
@@ -138,10 +125,7 @@ abstract contract StakeManager is ReentrancyGuard {
      * @param asset - The address of the asset being withdrawn
      * @param recipient - The address to send the withdrawn assets
      */
-    function withdrawStake(
-        address asset,
-        address payable recipient
-    ) external nonReentrant {
+    function withdrawStake(address asset, address payable recipient) external nonReentrant {
         StakeInfo storage stakeInfo = stakes[msg.sender][asset];
 
         if (stakeInfo.staked || stakeInfo.withdrawTime == 0 || stakeInfo.withdrawTime > block.timestamp) {
@@ -169,12 +153,7 @@ abstract contract StakeManager is ReentrancyGuard {
         emit StakeWithdrawn(msg.sender, asset, stake);
     }
 
-
-    function _claimStake(
-        address account,
-        address asset,
-        uint128 amount
-    ) internal {
+    function _claimStake(address account, address asset, uint128 amount) internal {
         StakeInfo storage stakeInfo = stakes[account][asset];
 
         uint128 stake = stakeInfo.amount;
