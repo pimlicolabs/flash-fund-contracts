@@ -7,3 +7,12 @@
 [submodule "lib/openzeppelin-contracts"]
 	path = lib/openzeppelin-contracts
 	url = https://github.com/OpenZeppelin/openzeppelin-contracts
+[submodule "lib/openzeppelin-foundry-upgrades-v0.3.6"]
+	path = lib/openzeppelin-foundry-upgrades-v0.3.6
+	url = https://github.com/OpenZeppelin/openzeppelin-foundry-upgrades
+[submodule "lib/openzeppelin-contracts-upgradeable-v5.0.2"]
+	path = lib/openzeppelin-contracts-upgradeable-v5.0.2
+	url = https://github.com/openZeppelin/openzeppelin-contracts-upgradeable
+[submodule "lib/solady-v0.0.259"]
+	path = lib/solady-v0.0.259
+	url = https://github.com/Vectorized/solady
