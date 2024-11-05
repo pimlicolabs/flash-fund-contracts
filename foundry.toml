@@ -1,9 +1,7 @@
 [profile.default]
 src = "src"
 out = "out"
-libs = ["lib", "dependencies"]
+libs = ["lib"]
+remappings = ["forge-std/=lib/forge-std/src/"]
 
-[dependencies]
-forge-std = "1.9.3"
-solady = { version = "0.0.259", git = "https://github.com/Vectorized/solady.git", rev = "7deab021af0426307ae79d091c4d1e26e9e89cf0" }
-openzeppelin = { version = "5.0.2", git = "https://github.com/OpenZeppelin/openzeppelin-contracts.git", rev = "bc1df46eac3b897bc343952fccac3fad8a3095bc" }
+# See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
