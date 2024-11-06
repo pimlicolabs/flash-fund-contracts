@@ -586,7 +586,7 @@
         "internalType": "address"
       },
       {
-        "name": "asset",
+        "name": "token",
         "type": "address",
         "indexed": true,
         "internalType": "address"
@@ -611,7 +611,7 @@
         "internalType": "address"
       },
       {
-        "name": "asset",
+        "name": "token",
         "type": "address",
         "indexed": true,
         "internalType": "address"
@@ -642,7 +642,7 @@
         "internalType": "address"
       },
       {
-        "name": "asset",
+        "name": "token",
         "type": "address",
         "indexed": true,
         "internalType": "address"
@@ -667,7 +667,7 @@
         "internalType": "address"
       },
       {
-        "name": "asset",
+        "name": "token",
         "type": "address",
         "indexed": true,
         "internalType": "address"

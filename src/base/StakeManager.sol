@@ -36,16 +36,16 @@ abstract contract StakeManager is ReentrancyGuardUpgradeable {
     error InsufficientFunds();
 
     /// Emitted when a stake is added
-    event StakeLocked(address indexed account, address indexed asset, uint256 amount, uint256 unstakeDelaySec);
+    event StakeLocked(address indexed account, address indexed token, uint256 amount, uint256 unstakeDelaySec);
 
     /// Emitted when a stake is unlocked (starts the unstake process)
-    event StakeUnlocked(address indexed account, address indexed asset, uint256 withdrawTime);
+    event StakeUnlocked(address indexed account, address indexed token, uint256 withdrawTime);
 
     /// Emitted when a stake is withdrawn
-    event StakeWithdrawn(address indexed account, address indexed asset, uint256 amount);
+    event StakeWithdrawn(address indexed account, address indexed token, uint256 amount);
 
     /// Emitted when a stake is claimed
-    event StakeClaimed(address indexed account, address indexed asset, uint256 amount);
+    event StakeClaimed(address indexed account, address indexed token, uint256 amount);
 
     /**
      * @param stake           - Actual amount of ether staked for this entity.
@@ -58,8 +58,7 @@ abstract contract StakeManager is ReentrancyGuardUpgradeable {
         bool staked; // Indicates if the asset is currently staked
     }
 
-    /// maps account to asset to stake
-    mapping(address => mapping(address => StakeInfo)) private stakes;
+    mapping(address account => mapping(address token => StakeInfo stake)) private stakes;
 
     uint32 public constant ONE_DAY = 60 * 60 * 24;
     uint32 public constant THREE_DAYS = ONE_DAY * 3;

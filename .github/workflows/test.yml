@@ -48,5 +48,5 @@ jobs:
 
       - name: Run Forge tests
         run: |
-          pnpm test
+          pnpm test -- --gas-report
         id: test

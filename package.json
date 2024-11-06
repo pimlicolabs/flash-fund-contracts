@@ -4,7 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "forge clean && forge build",
+    "build": "pnpm build:contracts && pnpm build:abi",
+    "build:abi": "./generate-abi.sh",
+    "build:contracts": "forge clean && forge build",
     "test": "pnpm build && forge test"
   },
   "keywords": [],
