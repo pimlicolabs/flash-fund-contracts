@@ -4,59 +4,60 @@ pragma solidity ^0.8.0;
 address constant ETH = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
 /// @notice Helper struct that represents a call to make.
-struct CallStruct {
+struct Call {
     address to;
     uint256 value;
     bytes data;
 }
 
-/// @notice Request acts as a reciept
-/// @dev signed by the signer it allows to withdraw funds
-/// @dev signed by the user it allows to claim funds from it's stake
-struct WithdrawRequest {
-    /// @dev Asset that user wants to withdraw.
-    address asset;
+/// @notice This struct represents a withdrawal request.
+/// @dev signed by the signer it allows to withdraw funds from the `MagicSpendWithdrawalManager` contract
+struct Withdrawal {
+    /// @dev Token that will be withdrawn.
+    address token;
     /// @dev The requested amount to withdraw.
     uint128 amount;
-    /// @dev Chain id of the network, where the request will be withdrawn.
+    /// @dev Chain id of the network, where the withdrawal will be executed.
     uint128 chainId;
     /// @dev Address that will receive the funds.
     address recipient;
     /// @dev Calls that will be made before the funds are sent to the user.
-    CallStruct[] preCalls;
+    Call[] preCalls;
     /// @dev Calls that will be made after the funds are sent to the user.
-    CallStruct[] postCalls;
-    /// @dev The time in which the request is valid until.
+    Call[] postCalls;
+    /// @dev The time in which the withdrawal is valid until.
     uint48 validUntil;
-    /// @dev The time in which this request is valid after.
+    /// @dev The time in which this withdrawal is valid after.
     uint48 validAfter;
-    /// @dev The salt of the request.
+    /// @dev The salt of the withdrawal.
     uint48 salt;
 }
 
-struct ClaimStruct {
-    /// @dev Asset that can be claimed.
-    address asset;
+/// @notice Helper struct that represents an allowance for a specific asset.
+struct AssetAllowance {
+    /// @dev Token that can be claimed.
+    address token;
     /// @dev The amount to claim.
     uint128 amount;
-    /// @dev The fee to claim.
-    uint128 fee;
-    /// @dev Chain id of the network, where the request will be claimed.
+    /// @dev The chain id of the network, where the claim will be made.
     uint128 chainId;
 }
 
-struct ClaimRequest {
-    /// @dev Address which stake is claimed.
+/// @notice Helper struct that represents an allowance.
+/// @dev signed by the user it allows Pimlico to claim part of user's stake from the `MagicSpendStakeManager` contract
+/// @dev on one or many chains.
+struct Allowance {
+    /// @dev Address which stake is allowed to be claimed.
     address account;
-    /// @dev List of claims, one claim per chain id
-    ClaimStruct[] claims;
-    /// @dev The time in which the request is valid until.
+    /// @dev List of assets, allowed to be claimed.
+    /// @dev One allowance per asset, where asset is the combination of (token,chainId)
+    AssetAllowance[] assets;
+    /// @dev The time in which the allowance is valid until.
     uint48 validUntil;
-    /// @dev The time in which the request is valid after.
+    /// @dev The time in which the allowance is valid after.
     uint48 validAfter;
-    /// @dev The salt of the request.
+    /// @dev The salt of the allowance.
     uint48 salt;
-    /// @dev Address which allowed to request WithdrawRequests on behalf of this ClaimRequest.
-    /// @dev If you don't need it, set it to 0x0.
-    address signer;
+    /// @dev Signer which is allowed to request withdrawals on behalf of this allowance.
+    address operator;
 }

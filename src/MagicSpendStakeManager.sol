@@ -9,7 +9,7 @@ import {SignatureChecker} from "@openzeppelin-5.0.2/contracts/utils/cryptography
 import {EIP712Upgradeable} from "@openzeppelin-5.0.2/contracts-upgradeable/utils/cryptography/EIP712Upgradeable.sol";
 import {OwnableUpgradeable} from "@openzeppelin-5.0.2/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {StakeManager} from "./base/StakeManager.sol";
-import {ETH, ClaimRequest, ClaimStruct} from "./base/Helpers.sol";
+import {ETH, Allowance, AssetAllowance} from "./base/Helpers.sol";
 
 import {SafeTransferLib} from "@solady-0.0.259/utils/SafeTransferLib.sol";
 
@@ -18,93 +18,93 @@ import {SafeTransferLib} from "@solady-0.0.259/utils/SafeTransferLib.sol";
 /// @notice Contract that allows users to stake their funds.
 /// @custom:security-contact security@pimlico.io
 contract MagicSpendStakeManager is StakeManager, OwnableUpgradeable, EIP712Upgradeable {
-    bytes32 private constant CLAIM_STRUCT_TYPE_HASH =
-        keccak256("ClaimStruct(address asset,uint128 amount,uint128 fee,uint128 chainId)");
+    bytes32 private constant ASSET_ALLOWANCE_TYPE_HASH =
+        keccak256("AssetAllowance(address token,uint128 amount,uint128 chainId)");
 
-    bytes32 private constant CLAIM_REQUEST_TYPE_HASH = keccak256(
-        "ClaimRequest(address account,ClaimStruct[] claims,uint48 validUntil,uint48 validAfter,uint48 salt,address signer)"
-        "ClaimStruct(address asset,uint128 amount,uint128 fee,uint128 chainId)"
+    bytes32 private constant ALLOWANCE_TYPE_HASH = keccak256(
+        "Allowance(address account,AssetAllowance[] assets,uint48 validUntil,uint48 validAfter,uint48 salt,address operator)"
+        "AssetAllowance(address token,uint128 amount,uint128 chainId)"
     );
 
-    /// @notice Thrown when the request was submitted with an invalid chain id.
-    error RequestInvalidChain();
+    /// @notice Thrown when the asset chain id does not match the.
+    error AssetAllowanceInvalidChain();
 
-    /// @notice Thrown when the request was submitted past its validUntil.
-    error RequestExpired();
+    /// @notice Thrown when the allowance was submitted past its validUntil.
+    error AllowanceExpired();
 
-    /// @notice Thrown when the request was submitted before its validAfter.
-    error RequestNotYetValid();
+    /// @notice Thrown when the allowance was submitted before its validAfter.
+    error AllowanceNotYetValid();
 
-    /// @notice The claim request was submitted with an invalid claim id.
-    error InvalidClaimId();
+    /// @notice The claim was submitted with an invalid claim id.
+    error InvalidAssetAllowanceId();
 
-    /// @notice The withdraw request was already withdrawn.
+    /// @notice The allowance was already withdrawn.
     error AlreadyUsed();
 
+    /// @notice The claim or skim was initiated with an amount of 0.
     error AmountTooLow();
 
+    /// @notice The claim was initiated with an amount higher than the allowance.
     error AmountTooHigh();
 
-    /// @notice The claim request was initiated with invalid signature (checked against `request.account`).
+    /// @notice The claim was initiated with invalid signature (checked against `Allowance.account`).
     error SignatureInvalid();
 
-    /// @notice Emitted when a request has been withdrawn.
-    event RequestClaimed(bytes32 indexed hash_, address indexed account, address indexed asset, uint256 amount);
+    /// @notice Emitted when an allowance is claimed.
+    event AllowanceClaimed(bytes32 indexed hash_, address indexed account, address indexed token, uint256 amount);
 
-    event AssetSkimmed(address indexed asset, uint256 amount);
+    event FeeSkimmed(address indexed token, uint256 amount);
 
     mapping(bytes32 hash_ => bool) public requestStatuses;
-    mapping(address asset => uint128) public claimed;
+    mapping(address token => uint128) public claimed;
 
     function initialize(address _owner) external initializer {
         __Ownable_init(_owner);
-        __EIP712_init("Pimlico Magic Spend", "1");
+        __EIP712_init("Pimlico MagicSpend++", "1");
     }
 
     /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
     /*                     EXTERNAL FUNCTIONS                     */
     /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
 
-    function claim(ClaimRequest calldata request, bytes calldata signature, uint8 claimId, uint128 amount)
+    function claim(Allowance calldata allowance, bytes calldata signature, uint8 assetId, uint128 amount)
         external
         nonReentrant
     {
-        bytes32 hash_ = getClaimRequestHash(request);
+        bytes32 hash_ = getAllowanceHash(allowance);
 
         if (requestStatuses[hash_]) {
             revert AlreadyUsed();
         }
 
-        if (request.validUntil != 0 && block.timestamp > request.validUntil) {
-            revert RequestExpired();
+        if (allowance.validUntil != 0 && block.timestamp > allowance.validUntil) {
+            revert AllowanceExpired();
         }
 
-        if (request.validAfter != 0 && block.timestamp < request.validAfter) {
-            revert RequestNotYetValid();
+        if (allowance.validAfter != 0 && block.timestamp < allowance.validAfter) {
+            revert AllowanceNotYetValid();
         }
 
-        // Derive the particular claim
-        if (request.claims.length <= claimId) {
-            revert InvalidClaimId();
+        if (allowance.assets.length <= assetId) {
+            revert InvalidAssetAllowanceId();
         }
 
-        ClaimStruct memory claim_ = request.claims[claimId];
+        AssetAllowance memory asset = allowance.assets[assetId];
 
-        if (claim_.chainId != block.chainid) {
-            revert RequestInvalidChain();
+        if (asset.chainId != block.chainid) {
+            revert AssetAllowanceInvalidChain();
         }
 
-        bool signatureValid = SignatureChecker.isValidSignatureNow(
-            request.account, MessageHashUtils.toEthSignedMessageHash(hash_), signature
-        );
+        address account = allowance.account;
+
+        bool signatureValid =
+            SignatureChecker.isValidSignatureNow(account, MessageHashUtils.toEthSignedMessageHash(hash_), signature);
 
         if (!signatureValid) {
             revert SignatureInvalid();
         }
 
-        address account = request.account;
-
-        if (amount > claim_.amount + claim_.fee) {
+        if (amount > asset.amount) {
             revert AmountTooHigh();
         }
 
@@ -112,51 +112,55 @@ contract MagicSpendStakeManager is StakeManager, OwnableUpgradeable, EIP712Upgra
             revert AmountTooLow();
         }
 
-        _claimStake(account, claim_.asset, amount);
+        address token = asset.token;
 
-        claimed[claim_.asset] += amount;
+        _claimStake(account, token, amount);
+
+        claimed[token] += amount;
         requestStatuses[hash_] = true;
 
-        emit RequestClaimed(hash_, account, claim_.asset, amount);
+        emit AllowanceClaimed(hash_, account, token, amount);
     }
 
-    function skim(address asset) external onlyOwner nonReentrant {
-        uint128 amount = claimed[asset];
+    function skim(address token) external onlyOwner nonReentrant {
+        uint128 amount = claimed[token];
 
         if (amount == 0) {
             revert AmountTooLow();
         }
 
-        if (asset == ETH) {
+        if (token == ETH) {
             SafeTransferLib.forceSafeTransferETH(owner(), amount);
         } else {
-            SafeTransferLib.safeTransfer(asset, owner(), amount);
+            SafeTransferLib.safeTransfer(token, owner(), amount);
         }
 
-        claimed[asset] = 0;
+        claimed[token] = 0;
 
-        emit AssetSkimmed(asset, amount);
+        emit FeeSkimmed(token, amount);
     }
 
-    function getClaimStructHash(ClaimStruct memory claim_) public pure returns (bytes32) {
-        return keccak256(abi.encode(CLAIM_STRUCT_TYPE_HASH, claim_.asset, claim_.amount, claim_.fee, claim_.chainId));
+    function getAssetAllowanceHash(AssetAllowance memory asset) public pure returns (bytes32) {
+        return keccak256(abi.encode(ASSET_ALLOWANCE_TYPE_HASH, asset.token, asset.amount, asset.chainId));
     }
 
-    function getClaimRequestHash(ClaimRequest memory request) public view returns (bytes32) {
-        bytes32[] memory claimHashes = new bytes32[](request.claims.length);
-        for (uint256 i = 0; i < request.claims.length; i++) {
-            claimHashes[i] = getClaimStructHash(request.claims[i]);
+    function getAllowanceHash(Allowance memory allowance) public view returns (bytes32) {
+        bytes32[] memory assetsHashes = new bytes32[](allowance.assets.length);
+
+        for (uint256 i = 0; i < allowance.assets.length; i++) {
+            assetsHashes[i] = getAssetAllowanceHash(allowance.assets[i]);
         }
+
         return _hashTypedDataV4(
             keccak256(
                 abi.encode(
-                    CLAIM_REQUEST_TYPE_HASH,
-                    request.account,
-                    keccak256(abi.encodePacked(claimHashes)),
-                    request.validUntil,
-                    request.validAfter,
-                    request.salt,
-                    request.signer
+                    ALLOWANCE_TYPE_HASH,
+                    allowance.account,
+                    keccak256(abi.encodePacked(assetsHashes)),
+                    allowance.validUntil,
+                    allowance.validAfter,
+                    allowance.salt,
+                    allowance.operator
                 )
             )
         );

@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 import "forge-std/Script.sol";
 import {MagicSpendStakeManager} from "./../src/MagicSpendStakeManager.sol";
 import {MagicSpendWithdrawalManager} from "./../src/MagicSpendWithdrawalManager.sol";
+import {MagicSpendFactory} from "./../src/MagicSpendFactory.sol";
 import {ETH} from "./../src/base/Helpers.sol";
 
 import {Upgrades} from "@openzeppelin-0.3.6/foundry-upgrades/Upgrades.sol";
@@ -18,19 +19,9 @@ contract MagicSpend_Deploy is Script {
         address alice = vm.rememberKey(vm.envUint("ALICE"));
 
         vm.startBroadcast(deployer);
-        address proxyStakeManager = Upgrades.deployTransparentProxy(
-            "MagicSpendStakeManager.sol", owner, abi.encodeCall(MagicSpendStakeManager.initialize, (owner))
-        );
 
-        MagicSpendStakeManager stakeManager = MagicSpendStakeManager(payable(proxyStakeManager));
-
-        address proxyWithdrawalManager = Upgrades.deployTransparentProxy(
-            "MagicSpendWithdrawalManager.sol",
-            owner,
-            abi.encodeCall(MagicSpendWithdrawalManager.initialize, (owner, signer))
-        );
-
-        MagicSpendWithdrawalManager withdrawalManager = MagicSpendWithdrawalManager(payable(proxyWithdrawalManager));
+        MagicSpendStakeManager stakeManager = MagicSpendFactory.deployStakeManager(owner);
+        MagicSpendWithdrawalManager withdrawalManager = MagicSpendFactory.deployWithdrawalManager(owner, signer);
         vm.stopBroadcast();
 
         vm.startBroadcast(owner);

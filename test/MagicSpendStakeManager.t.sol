@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import {Test, console} from "forge-std/Test.sol";
 
-import {ETH, WithdrawRequest, ClaimRequest, ClaimStruct, CallStruct} from "./../src/base/Helpers.sol";
+import {ETH, Allowance, AssetAllowance} from "./../src/base/Helpers.sol";
 import {WithdrawalManager} from "./../src/base/WithdrawalManager.sol";
 import {TestERC20} from "./utils/TestERC20.sol";
 import {ForceReverter} from "./utils/ForceReverter.sol";
@@ -11,8 +11,7 @@ import {ForceReverter} from "./utils/ForceReverter.sol";
 import {MessageHashUtils} from "@openzeppelin-5.0.2/contracts/utils/cryptography/MessageHashUtils.sol";
 import {SafeTransferLib} from "@solady-0.0.259/utils/SafeTransferLib.sol";
 import {MagicSpendStakeManager} from "./../src/MagicSpendStakeManager.sol";
-
-import {Upgrades} from "@openzeppelin-0.3.6/foundry-upgrades/Upgrades.sol";
+import {MagicSpendFactory} from "./../src/MagicSpendFactory.sol";
 
 contract MagicSpendStakeManagerTest is Test {
     address immutable OWNER = makeAddr("owner");
@@ -27,106 +26,102 @@ contract MagicSpendStakeManagerTest is Test {
 
     ForceReverter forceReverter;
     MagicSpendStakeManager magicSpendStakeManager;
-    TestERC20 token;
+    TestERC20 erc20;
 
     function setUp() external {
         (alice, aliceKey) = makeAddrAndKey("alice");
 
-        address proxy = Upgrades.deployTransparentProxy(
-            "MagicSpendStakeManager.sol", OWNER, abi.encodeCall(MagicSpendStakeManager.initialize, (OWNER))
-        );
+        magicSpendStakeManager = MagicSpendFactory.deployStakeManager(OWNER);
 
-        magicSpendStakeManager = MagicSpendStakeManager(payable(proxy));
-
-        token = new TestERC20(18);
+        erc20 = new TestERC20(18);
         forceReverter = new ForceReverter();
 
         vm.deal(alice, 100 ether);
 
         vm.prank(OWNER);
-        token.sudoMint(alice, 100 ether);
+        erc20.sudoMint(alice, 100 ether);
 
         vm.prank(alice);
-        token.approve(address(magicSpendStakeManager), 100 ether);
+        erc20.approve(address(magicSpendStakeManager), 100 ether);
     }
 
     function test_ClaimNativeTokenSuccess() external {
-        address asset = ETH;
+        address token = ETH;
 
-        _addStake(asset, amount + fee);
+        _addStake(token, amount + fee);
 
-        ClaimRequest memory request = ClaimRequest({
+        Allowance memory allowance = Allowance({
             account: alice,
-            claims: new ClaimStruct[](1),
+            assets: new AssetAllowance[](1),
             validUntil: 0,
             validAfter: 0,
             salt: 0,
-            signer: address(0)
+            operator: alice
         });
 
-        request.claims[0] = ClaimStruct({asset: asset, amount: amount, fee: fee, chainId: chainId});
+        allowance.assets[0] = AssetAllowance({token: token, amount: amount, chainId: chainId});
 
         vm.chainId(chainId);
 
-        bytes memory signature = signClaimRequest(request, aliceKey);
+        bytes memory signature = signAllowance(allowance, aliceKey);
 
         vm.expectEmit(address(magicSpendStakeManager));
-        emit MagicSpendStakeManager.RequestClaimed(
-            magicSpendStakeManager.getClaimRequestHash(request), alice, asset, amount
+        emit MagicSpendStakeManager.AllowanceClaimed(
+            magicSpendStakeManager.getAllowanceHash(allowance), alice, token, amount
         );
 
-        magicSpendStakeManager.claim(request, signature, 0, amount + fee);
-        vm.assertEq(magicSpendStakeManager.stakeOf(alice, asset), 0 ether, "Alice should lose her stake after claim");
+        magicSpendStakeManager.claim(allowance, signature, 0, amount + fee);
+        vm.assertEq(magicSpendStakeManager.stakeOf(alice, token), 0 ether, "Alice should lose her stake after claim");
     }
 
     function test_ClaimERC20TokenSuccess() external {
-        address asset = address(token);
+        address token = address(erc20);
 
-        _addStake(asset, amount + fee);
+        _addStake(token, amount + fee);
 
-        ClaimRequest memory request = ClaimRequest({
+        Allowance memory allowance = Allowance({
             account: alice,
-            claims: new ClaimStruct[](1),
+            assets: new AssetAllowance[](1),
             validUntil: 0,
             validAfter: 0,
             salt: 0,
-            signer: address(0)
+            operator: alice
         });
 
-        request.claims[0] = ClaimStruct({asset: asset, amount: amount, fee: fee, chainId: chainId});
+        allowance.assets[0] = AssetAllowance({token: token, amount: amount, chainId: chainId});
 
         vm.chainId(chainId);
 
-        bytes memory signature = signClaimRequest(request, aliceKey);
+        bytes memory signature = signAllowance(allowance, aliceKey);
 
         vm.expectEmit(address(magicSpendStakeManager));
-        emit MagicSpendStakeManager.RequestClaimed(
-            magicSpendStakeManager.getClaimRequestHash(request), alice, asset, amount
+        emit MagicSpendStakeManager.AllowanceClaimed(
+            magicSpendStakeManager.getAllowanceHash(allowance), alice, token, amount
         );
 
-        magicSpendStakeManager.claim(request, signature, 0, amount + fee);
+        magicSpendStakeManager.claim(allowance, signature, 0, amount + fee);
 
-        vm.assertEq(magicSpendStakeManager.stakeOf(alice, asset), 0 ether, "Alice should lose her stake after claim");
+        vm.assertEq(magicSpendStakeManager.stakeOf(alice, token), 0 ether, "Alice should lose her stake after claim");
     }
 
     // // = = = Helpers = = =
 
-    function signClaimRequest(ClaimRequest memory request, uint256 signingKey)
+    function signAllowance(Allowance memory allowance, uint256 signingKey)
         internal
         view
         returns (bytes memory signature)
     {
-        bytes32 hash_ = magicSpendStakeManager.getClaimRequestHash(request);
+        bytes32 hash_ = magicSpendStakeManager.getAllowanceHash(allowance);
 
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(signingKey, MessageHashUtils.toEthSignedMessageHash(hash_));
 
         return abi.encodePacked(r, s, v);
     }
 
-    function _addStake(address asset, uint128 amount_) internal {
+    function _addStake(address token, uint128 amount_) internal {
         vm.prank(alice);
 
-        magicSpendStakeManager.addStake{value: asset == ETH ? amount_ : 0}(asset, amount_, 1);
+        magicSpendStakeManager.addStake{value: token == ETH ? amount_ : 0}(token, amount_, 1);
 
         vm.stopPrank();
     }

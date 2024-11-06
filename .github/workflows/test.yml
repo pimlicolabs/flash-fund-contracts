@@ -3,7 +3,7 @@ name: test
 on:
   push:
     branches:
-      - "**"  # This will match pushes to all branches
+      - "main"  # This will match pushes to all branches
   workflow_dispatch:
 
 env:
@@ -25,14 +25,19 @@ jobs:
         uses: foundry-rs/foundry-toolchain@v1
         with:
           version: nightly
-
-      - name: Run Forge build
+      
+      - name: Install Foundry dependencies
         run: |
           forge --version
-          forge build --sizes
-        id: build
+          forge install
+        id: forge-install
+      
+      - name: Install pnpm dependencies
+        run: |
+          pnpm install
+        id: pnpm-install
 
       - name: Run Forge tests
         run: |
-          forge test -vvv
+          pnpm test
         id: test

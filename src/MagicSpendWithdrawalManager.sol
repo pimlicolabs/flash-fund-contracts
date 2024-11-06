@@ -11,36 +11,36 @@ import {EIP712Upgradeable} from "@openzeppelin-5.0.2/contracts-upgradeable/utils
 import {Initializable} from "@openzeppelin-5.0.2/contracts-upgradeable/proxy/utils/Initializable.sol";
 import {Signer} from "./base/Signer.sol";
 import {WithdrawalManager} from "./base/WithdrawalManager.sol";
-import {ETH, WithdrawRequest, CallStruct} from "./base/Helpers.sol";
+import {ETH, Withdrawal, Call} from "./base/Helpers.sol";
 
 import {SafeTransferLib} from "@solady-0.0.259/utils/SafeTransferLib.sol";
 
 /// @title MagicSpendWithdrawalManager
 /// @author Pimlico (https://github.com/pimlicolabs/magic-spend)
-/// @notice Contract that allows users to pull funds from if they provide a valid signed request.
+/// @notice Contract that allows users to pull funds from if they provide a valid signed `Withdrawal`.
 /// @dev Inherits from Ownable.
 /// @custom:security-contact security@pimlico.io
 contract MagicSpendWithdrawalManager is OwnableUpgradeable, Signer, WithdrawalManager, EIP712Upgradeable {
-    bytes32 private constant CALL_STRUCT_TYPE_HASH = keccak256("CallStruct(address to,uint256 value,bytes data)");
+    bytes32 private constant CALL_TYPE_HASH = keccak256("Call(address to,uint256 value,bytes data)");
 
-    bytes32 private constant WITHDRAW_REQUEST_TYPE_HASH = keccak256(
-        "WithdrawRequest(address asset,uint128 amount,uint128 chainId,address recipient,CallStruct[] preCalls,CallStruct[] postCalls,uint48 validUntil,uint48 validAfter,uint48 salt)"
-        "CallStruct(address to,uint256 value,bytes data)"
+    bytes32 private constant WITHDRAWAL_TYPE_HASH = keccak256(
+        "Withdrawal(address token,uint128 amount,uint128 chainId,address recipient,Call[] preCalls,Call[] postCalls,uint48 validUntil,uint48 validAfter,uint48 salt)"
+        "Call(address to,uint256 value,bytes data)"
     );
 
-    /// @notice Thrown when the request was submitted with an invalid chain id.
-    error RequestInvalidChain();
+    /// @notice Thrown when the withdrawal was submitted with an invalid chain id.
+    error WithdrawalInvalidChain();
 
-    /// @notice Thrown when the request was submitted past its validUntil.
-    error RequestExpired();
+    /// @notice Thrown when the withdrawal was submitted past its validUntil.
+    error WithdrawalExpired();
 
-    /// @notice Thrown when the request was submitted before its validAfter.
-    error RequestNotYetValid();
+    /// @notice Thrown when the withdrawal was submitted before its validAfter.
+    error WithdrawalNotYetValid();
 
-    /// @notice The withdraw request was initiated with invalid signature.
+    /// @notice The withdraw withdrawal was initiated with invalid signature.
     error SignatureInvalid();
 
-    /// @notice The withdraw request was already withdrawn.
+    /// @notice The withdraw withdrawal was already withdrawn.
     error AlreadyUsed();
 
     /// @notice One of the precalls reverted.
@@ -51,16 +51,15 @@ contract MagicSpendWithdrawalManager is OwnableUpgradeable, Signer, WithdrawalMa
     /// @param revertReason The revert bytes.
     error PostCallReverted(bytes revertReason);
 
-    /// @notice Emitted when a request has been withdrawn.
-    event RequestWithdrawn(bytes32 indexed hash_, address indexed recipient, address indexed asset, uint256 amount);
+    /// @notice Emitted when a withdrawal has been withdrawn.
+    event WithdrawalExecuted(bytes32 indexed hash_, address indexed recipient, address indexed token, uint256 amount);
 
     mapping(bytes32 hash_ => bool) public requestStatuses;
 
-    // constructor(address _owner, address _signer) Ownable(_owner) EIP712("Pimlico Magic Spend", "1") Signer(_signer) {}
     function initialize(address _owner, address _signer) external initializer {
         __Ownable_init(_owner);
-        __EIP712_init("Pimlico Magic Spend", "1");
         __Signer_init(_signer);
+        __EIP712_init("Pimlico MagicSpend++", "1");
     }
 
     /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
@@ -68,23 +67,22 @@ contract MagicSpendWithdrawalManager is OwnableUpgradeable, Signer, WithdrawalMa
     /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
 
     /**
-     * @notice Fulfills a withdraw request only if it has a valid signature and passes validation.
-     * The signature should be signed by the signer.
+     * @notice Fulfills a withdrawal only if it has a valid signature and passes validation.
      */
-    function withdraw(WithdrawRequest calldata request, bytes calldata signature) external nonReentrant {
-        if (request.chainId != block.chainid) {
-            revert RequestInvalidChain();
+    function withdraw(Withdrawal calldata withdrawal, bytes calldata signature) external nonReentrant {
+        if (withdrawal.chainId != block.chainid) {
+            revert WithdrawalInvalidChain();
         }
 
-        if (request.validUntil != 0 && block.timestamp > request.validUntil) {
-            revert RequestExpired();
+        if (withdrawal.validUntil != 0 && block.timestamp > withdrawal.validUntil) {
+            revert WithdrawalExpired();
         }
 
-        if (request.validAfter != 0 && block.timestamp < request.validAfter) {
-            revert RequestNotYetValid();
+        if (withdrawal.validAfter != 0 && block.timestamp < withdrawal.validAfter) {
+            revert WithdrawalNotYetValid();
         }
 
-        bytes32 hash_ = getWithdrawRequestHash(request);
+        bytes32 hash_ = getWithdrawalHash(withdrawal);
 
         bool signatureValid = SignatureChecker.isValidSignatureNow(getSigner(), hash_, signature);
 
@@ -92,16 +90,15 @@ contract MagicSpendWithdrawalManager is OwnableUpgradeable, Signer, WithdrawalMa
             revert SignatureInvalid();
         }
 
-        // check withdraw request params
         if (requestStatuses[hash_]) {
             revert AlreadyUsed();
         }
 
         // run pre calls
-        for (uint256 i = 0; i < request.preCalls.length; i++) {
-            address to = request.preCalls[i].to;
-            uint256 value = request.preCalls[i].value;
-            bytes memory data = request.preCalls[i].data;
+        for (uint256 i = 0; i < withdrawal.preCalls.length; i++) {
+            address to = withdrawal.preCalls[i].to;
+            uint256 value = withdrawal.preCalls[i].value;
+            bytes memory data = withdrawal.preCalls[i].data;
 
             (bool success, bytes memory result) = to.call{value: value}(data);
 
@@ -110,17 +107,21 @@ contract MagicSpendWithdrawalManager is OwnableUpgradeable, Signer, WithdrawalMa
             }
         }
 
-        if (request.asset == ETH) {
-            SafeTransferLib.forceSafeTransferETH(request.recipient, request.amount);
+        address token = withdrawal.token;
+        address recipient = withdrawal.recipient;
+        uint128 amount = withdrawal.amount;
+
+        if (token == ETH) {
+            SafeTransferLib.forceSafeTransferETH(recipient, amount);
         } else {
-            SafeTransferLib.safeTransfer(request.asset, request.recipient, request.amount);
+            SafeTransferLib.safeTransfer(token, recipient, amount);
         }
 
         // run postcalls
-        for (uint256 i = 0; i < request.postCalls.length; i++) {
-            address to = request.postCalls[i].to;
-            uint256 value = request.postCalls[i].value;
-            bytes memory data = request.postCalls[i].data;
+        for (uint256 i = 0; i < withdrawal.postCalls.length; i++) {
+            address to = withdrawal.postCalls[i].to;
+            uint256 value = withdrawal.postCalls[i].value;
+            bytes memory data = withdrawal.postCalls[i].data;
 
             (bool success, bytes memory result) = to.call{value: value}(data);
 
@@ -131,38 +132,38 @@ contract MagicSpendWithdrawalManager is OwnableUpgradeable, Signer, WithdrawalMa
 
         requestStatuses[hash_] = true;
 
-        emit RequestWithdrawn(hash_, request.recipient, request.asset, request.amount);
+        emit WithdrawalExecuted(hash_, recipient, token, amount);
     }
 
-    function getCallStructHash(CallStruct calldata call) public pure returns (bytes32) {
-        return keccak256(abi.encode(CALL_STRUCT_TYPE_HASH, call.to, call.value, keccak256(call.data)));
+    function getCallHash(Call calldata call) public pure returns (bytes32) {
+        return keccak256(abi.encode(CALL_TYPE_HASH, call.to, call.value, keccak256(call.data)));
     }
 
-    function getWithdrawRequestHash(WithdrawRequest calldata request) public view returns (bytes32) {
-        bytes32[] memory preCallHashes = new bytes32[](request.preCalls.length);
-        bytes32[] memory postCallHashes = new bytes32[](request.postCalls.length);
+    function getWithdrawalHash(Withdrawal calldata withdrawal) public view returns (bytes32) {
+        bytes32[] memory preCallHashes = new bytes32[](withdrawal.preCalls.length);
+        bytes32[] memory postCallHashes = new bytes32[](withdrawal.postCalls.length);
 
-        for (uint256 i = 0; i < request.preCalls.length; i++) {
-            preCallHashes[i] = getCallStructHash(request.preCalls[i]);
+        for (uint256 i = 0; i < withdrawal.preCalls.length; i++) {
+            preCallHashes[i] = getCallHash(withdrawal.preCalls[i]);
         }
 
-        for (uint256 i = 0; i < request.postCalls.length; i++) {
-            postCallHashes[i] = getCallStructHash(request.postCalls[i]);
+        for (uint256 i = 0; i < withdrawal.postCalls.length; i++) {
+            postCallHashes[i] = getCallHash(withdrawal.postCalls[i]);
         }
 
         return _hashTypedDataV4(
             keccak256(
                 abi.encode(
-                    WITHDRAW_REQUEST_TYPE_HASH,
-                    request.asset,
-                    request.amount,
-                    request.chainId,
-                    request.recipient,
+                    WITHDRAWAL_TYPE_HASH,
+                    withdrawal.token,
+                    withdrawal.amount,
+                    withdrawal.chainId,
+                    withdrawal.recipient,
                     keccak256(abi.encodePacked(preCallHashes)),
                     keccak256(abi.encodePacked(postCallHashes)),
-                    request.validUntil,
-                    request.validAfter,
-                    request.salt
+                    withdrawal.validUntil,
+                    withdrawal.validAfter,
+                    withdrawal.salt
                 )
             )
         );

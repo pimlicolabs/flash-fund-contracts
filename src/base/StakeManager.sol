@@ -6,23 +6,33 @@ import {ReentrancyGuardUpgradeable} from
     "@openzeppelin-5.0.2/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import {ETH} from "./Helpers.sol";
 
-/* solhint-disable avoid-low-level-calls */
 /* solhint-disable not-rely-on-time */
 
 /**
  * Manages stakes.
  * Stakes are locked for a period of time.
- * Stakes can be added, claimed, and removed.
- * - To add stake, call `addStake` with the asset and amount.
- * - Stake is claimed every time `MagicSpendPlusMinusHalf.claim` is called
- * - To remove stake, call `removeStake` with the asset and recipient. No partical unstakes are allowed.
+ * Stakes can be added, claimed, and withdrawn.
+ * To add stake, call `addStake` with the asset and amount.
+ * Stake is claimed when `MagicSpendStakeManager.claim` is called
+ * To withdraw stake, call `withdrawStake` with the asset and recipient. No partical unstakes are allowed.
  */
 abstract contract StakeManager is ReentrancyGuardUpgradeable {
+    /// Emitted when the unstake delay is too low or too high
     error InvalidUnstakeDelay();
+
+    /// Emitted when the stake amount is too low
     error StakeTooLow();
+
+    /// Emitted when the stake amount is too high
     error StakeTooHigh();
+
+    /// Emitted when trying to unlock an already unlocked stake
     error StakeAlreadyUnlocked();
+
+    /// Emitted when trying to remove a locked stake
     error StakeIsLocked();
+
+    /// Emitted when user tries to add more funds t
     error InsufficientFunds();
 
     /// Emitted when a stake is added
@@ -55,12 +65,12 @@ abstract contract StakeManager is ReentrancyGuardUpgradeable {
     uint32 public constant THREE_DAYS = ONE_DAY * 3;
     uint32 public constant FIVE_DAYS = ONE_DAY * 5;
 
-    function getStakeInfo(address account, address asset) public view returns (StakeInfo memory info) {
-        return stakes[account][asset];
+    function getStakeInfo(address account, address token) public view returns (StakeInfo memory info) {
+        return stakes[account][token];
     }
 
-    function stakeOf(address account, address asset) public view returns (uint128) {
-        return stakes[account][asset].amount;
+    function stakeOf(address account, address token) public view returns (uint128) {
+        return stakes[account][token].amount;
     }
 
     receive() external payable {
@@ -72,8 +82,8 @@ abstract contract StakeManager is ReentrancyGuardUpgradeable {
      * any pending unstake is first cancelled.
      * @param unstakeDelaySec The new lock duration before the deposit can be withdrawn.
      */
-    function addStake(address asset, uint128 amount, uint32 unstakeDelaySec) public payable nonReentrant {
-        StakeInfo storage stakeInfo = stakes[msg.sender][asset];
+    function addStake(address token, uint128 amount, uint32 unstakeDelaySec) public payable nonReentrant {
+        StakeInfo storage stakeInfo = stakes[msg.sender][token];
 
         if (unstakeDelaySec == 0 || unstakeDelaySec > FIVE_DAYS) {
             revert InvalidUnstakeDelay();
@@ -93,48 +103,46 @@ abstract contract StakeManager is ReentrancyGuardUpgradeable {
         stakeInfo.amount += amount;
         stakeInfo.unstakeDelaySec = unstakeDelaySec;
         stakeInfo.staked = true;
-        stakeInfo.withdrawTime = 0; // Reset withdraw time if already staking
+        stakeInfo.withdrawTime = 0; // Reset withdraw time if unlocked
 
-        if (asset == ETH) {
+        if (token == ETH) {
             if (msg.value != amount) {
                 revert InsufficientFunds();
             }
         } else {
-            SafeTransferLib.safeTransferFrom(asset, msg.sender, address(this), amount);
+            SafeTransferLib.safeTransferFrom(token, msg.sender, address(this), amount);
         }
 
-        emit StakeLocked(msg.sender, asset, amount, unstakeDelaySec);
+        emit StakeLocked(msg.sender, token, amount, unstakeDelaySec);
     }
 
     /**
      * Unlocks the stake, starting the withdrawal process.
      * Users must wait for the unstake delay to pass before withdrawing their assets.
-     * @param asset - The address of the asset being unstaked
+     * @param token - The address of the asset being unstaked
      */
-    function unlockStake(address asset) external {
-        StakeInfo storage stakeInfo = stakes[msg.sender][asset];
+    function unlockStake(address token) external nonReentrant {
+        StakeInfo storage stakeInfo = stakes[msg.sender][token];
 
-        if (stakeInfo.withdrawTime > 0) {
+        if (stakeInfo.withdrawTime > 0 || !stakeInfo.staked) {
             revert StakeAlreadyUnlocked();
         }
-
-        // require(stakeInfo.staked, "No active stake");
 
         uint48 withdrawTime = uint48(block.timestamp) + stakeInfo.unstakeDelaySec;
         stakeInfo.withdrawTime = withdrawTime;
         stakeInfo.staked = false; // Mark as unstaking
 
-        emit StakeUnlocked(msg.sender, asset, withdrawTime);
+        emit StakeUnlocked(msg.sender, token, withdrawTime);
     }
 
     /**
      * Withdraws the staked assets after the unstake delay has passed.
      * Must first call `unlockStake` and wait for the delay to pass.
-     * @param asset - The address of the asset being withdrawn
-     * @param recipient - The address to send the withdrawn assets
+     * @param token - The address of the token being withdrawn
+     * @param recipient - The address to send the withdrawn tokens
      */
-    function withdrawStake(address asset, address payable recipient) external nonReentrant {
-        StakeInfo storage stakeInfo = stakes[msg.sender][asset];
+    function withdrawStake(address token, address payable recipient) external nonReentrant {
+        StakeInfo storage stakeInfo = stakes[msg.sender][token];
 
         if (stakeInfo.staked || stakeInfo.withdrawTime == 0 || stakeInfo.withdrawTime > block.timestamp) {
             revert StakeIsLocked();
@@ -152,17 +160,17 @@ abstract contract StakeManager is ReentrancyGuardUpgradeable {
         stakeInfo.staked = false;
         stakeInfo.unstakeDelaySec = 0;
 
-        if (asset == ETH) {
+        if (token == ETH) {
             SafeTransferLib.safeTransferETH(recipient, stake);
         } else {
-            SafeTransferLib.safeTransfer(asset, recipient, stake);
+            SafeTransferLib.safeTransfer(token, recipient, stake);
         }
 
-        emit StakeWithdrawn(msg.sender, asset, stake);
+        emit StakeWithdrawn(msg.sender, token, stake);
     }
 
-    function _claimStake(address account, address asset, uint128 amount) internal {
-        StakeInfo storage stakeInfo = stakes[account][asset];
+    function _claimStake(address account, address token, uint128 amount) internal {
+        StakeInfo storage stakeInfo = stakes[account][token];
 
         uint128 stake = stakeInfo.amount;
 
@@ -172,6 +180,6 @@ abstract contract StakeManager is ReentrancyGuardUpgradeable {
 
         stakeInfo.amount = stake - amount;
 
-        emit StakeClaimed(account, asset, amount);
+        emit StakeClaimed(account, token, amount);
     }
 }

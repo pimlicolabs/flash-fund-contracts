@@ -3,13 +3,15 @@
 ## Build
 
 ```shell
-$ forge build
+$ forge install
+$ pnpm install
+$ pnpm install
 ```
 
 ## Test
 
 ```shell
-$ forge test
+$ pnpm test
 ```
 
 ## Format

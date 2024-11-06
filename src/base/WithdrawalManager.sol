@@ -7,32 +7,38 @@ import {ReentrancyGuardUpgradeable} from
     "@openzeppelin-5.0.2/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
 import {ETH} from "./Helpers.sol";
 
+/**
+ * Manages liquidity.
+ * Liquidity (ETH or ERC20 tokens) can be added only by owner.
+ * Liquidity can be removed only by owner at any time.
+ * Liquidity can also be removed by calling the `MagicSpendWithdrawalManager.withdraw`
+ */
 abstract contract WithdrawalManager is OwnableUpgradeable, ReentrancyGuardUpgradeable {
-    event LiquidityAdded(address asset, uint128 amount);
+    event LiquidityAdded(address token, uint128 amount);
 
-    event LiquidityRemoved(address asset, uint128 amount);
+    event LiquidityRemoved(address token, uint128 amount);
 
-    error InsufficientLiquidity(address asset);
+    error InsufficientLiquidity(address token);
 
-    function addLiquidity(address asset, uint128 amount) external payable onlyOwner nonReentrant {
-        if (asset == ETH) {
+    function addLiquidity(address token, uint128 amount) external payable onlyOwner nonReentrant {
+        if (token == ETH) {
             if (msg.value != amount) {
-                revert InsufficientLiquidity(asset);
+                revert InsufficientLiquidity(token);
             }
         } else {
-            SafeTransferLib.safeTransferFrom(asset, msg.sender, address(this), amount);
+            SafeTransferLib.safeTransferFrom(token, msg.sender, address(this), amount);
         }
 
-        emit LiquidityAdded(asset, amount);
+        emit LiquidityAdded(token, amount);
     }
 
-    function removeLiquidity(address asset, uint128 amount) external onlyOwner nonReentrant {
-        if (asset == ETH) {
+    function removeLiquidity(address token, uint128 amount) external onlyOwner nonReentrant {
+        if (token == ETH) {
             SafeTransferLib.forceSafeTransferETH(msg.sender, amount);
         } else {
-            SafeTransferLib.safeTransfer(asset, msg.sender, amount);
+            SafeTransferLib.safeTransfer(token, msg.sender, amount);
         }
 
-        emit LiquidityRemoved(asset, amount);
+        emit LiquidityRemoved(token, amount);
     }
 }
