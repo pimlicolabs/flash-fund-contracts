@@ -5,17 +5,16 @@
 ```shell
 $ forge install
 $ pnpm install
-$ pnpm install
+```
+
+## Build
+
+```shell
+$ pnpm build
 ```
 
 ## Test
 
 ```shell
 $ pnpm test
-```
-
-## Format
-
-```shell
-$ forge fmt
 ```
