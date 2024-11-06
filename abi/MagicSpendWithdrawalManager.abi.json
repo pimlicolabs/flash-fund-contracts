@@ -4,7 +4,7 @@
     "name": "addLiquidity",
     "inputs": [
       {
-        "name": "asset",
+        "name": "token",
         "type": "address",
         "internalType": "address"
       },
@@ -75,12 +75,12 @@
   },
   {
     "type": "function",
-    "name": "getCallStructHash",
+    "name": "getCallHash",
     "inputs": [
       {
         "name": "call",
         "type": "tuple",
-        "internalType": "struct CallStruct",
+        "internalType": "struct Call",
         "components": [
           {
             "name": "to",
@@ -124,15 +124,15 @@
   },
   {
     "type": "function",
-    "name": "getWithdrawRequestHash",
+    "name": "getWithdrawalHash",
     "inputs": [
       {
-        "name": "request",
+        "name": "withdrawal",
         "type": "tuple",
-        "internalType": "struct WithdrawRequest",
+        "internalType": "struct Withdrawal",
         "components": [
           {
-            "name": "asset",
+            "name": "token",
             "type": "address",
             "internalType": "address"
           },
@@ -154,7 +154,7 @@
           {
             "name": "preCalls",
             "type": "tuple[]",
-            "internalType": "struct CallStruct[]",
+            "internalType": "struct Call[]",
             "components": [
               {
                 "name": "to",
@@ -176,7 +176,7 @@
           {
             "name": "postCalls",
             "type": "tuple[]",
-            "internalType": "struct CallStruct[]",
+            "internalType": "struct Call[]",
             "components": [
               {
                 "name": "to",
@@ -258,7 +258,7 @@
     "name": "removeLiquidity",
     "inputs": [
       {
-        "name": "asset",
+        "name": "token",
         "type": "address",
         "internalType": "address"
       },
@@ -315,12 +315,12 @@
     "name": "withdraw",
     "inputs": [
       {
-        "name": "request",
+        "name": "withdrawal",
         "type": "tuple",
-        "internalType": "struct WithdrawRequest",
+        "internalType": "struct Withdrawal",
         "components": [
           {
-            "name": "asset",
+            "name": "token",
             "type": "address",
             "internalType": "address"
           },
@@ -342,7 +342,7 @@
           {
             "name": "preCalls",
             "type": "tuple[]",
-            "internalType": "struct CallStruct[]",
+            "internalType": "struct Call[]",
             "components": [
               {
                 "name": "to",
@@ -364,7 +364,7 @@
           {
             "name": "postCalls",
             "type": "tuple[]",
-            "internalType": "struct CallStruct[]",
+            "internalType": "struct Call[]",
             "components": [
               {
                 "name": "to",
@@ -433,7 +433,7 @@
     "name": "LiquidityAdded",
     "inputs": [
       {
-        "name": "asset",
+        "name": "token",
         "type": "address",
         "indexed": false,
         "internalType": "address"
@@ -452,7 +452,7 @@
     "name": "LiquidityRemoved",
     "inputs": [
       {
-        "name": "asset",
+        "name": "token",
         "type": "address",
         "indexed": false,
         "internalType": "address"
@@ -487,7 +487,20 @@
   },
   {
     "type": "event",
-    "name": "RequestWithdrawn",
+    "name": "SignerAdded",
+    "inputs": [
+      {
+        "name": "signer",
+        "type": "address",
+        "indexed": false,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "WithdrawalExecuted",
     "inputs": [
       {
         "name": "hash_",
@@ -502,7 +515,7 @@
         "internalType": "address"
       },
       {
-        "name": "asset",
+        "name": "token",
         "type": "address",
         "indexed": true,
         "internalType": "address"
@@ -517,19 +530,6 @@
     "anonymous": false
   },
   {
-    "type": "event",
-    "name": "SignerAdded",
-    "inputs": [
-      {
-        "name": "signer",
-        "type": "address",
-        "indexed": false,
-        "internalType": "address"
-      }
-    ],
-    "anonymous": false
-  },
-  {
     "type": "error",
     "name": "AlreadyUsed",
     "inputs": []
@@ -539,7 +539,7 @@
     "name": "InsufficientLiquidity",
     "inputs": [
       {
-        "name": "asset",
+        "name": "token",
         "type": "address",
         "internalType": "address"
       }
@@ -606,22 +606,22 @@
   },
   {
     "type": "error",
-    "name": "RequestExpired",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "RequestInvalidChain",
-    "inputs": []
-  },
-  {
-    "type": "error",
-    "name": "RequestNotYetValid",
-    "inputs": []
-  },
-  {
-    "type": "error",
     "name": "SignatureInvalid",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "WithdrawalExpired",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "WithdrawalInvalidChain",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "WithdrawalNotYetValid",
     "inputs": []
   }
 ]
