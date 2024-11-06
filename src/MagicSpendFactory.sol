@@ -6,8 +6,8 @@ import {MagicSpendWithdrawalManager} from "./MagicSpendWithdrawalManager.sol";
 
 import {Upgrades} from "@openzeppelin-0.3.6/foundry-upgrades/Upgrades.sol";
 
-library MagicSpendFactory {
-    function deployStakeManager(address owner) external returns (MagicSpendStakeManager) {
+abstract contract MagicSpendFactory {
+    function deployStakeManager(address owner) internal returns (MagicSpendStakeManager) {
         address proxy = Upgrades.deployTransparentProxy(
             "MagicSpendStakeManager.sol", owner, abi.encodeCall(MagicSpendStakeManager.initialize, (owner))
         );
@@ -15,7 +15,7 @@ library MagicSpendFactory {
         return MagicSpendStakeManager(payable(proxy));
     }
 
-    function deployWithdrawalManager(address owner, address signer) external returns (MagicSpendWithdrawalManager) {
+    function deployWithdrawalManager(address owner, address signer) internal returns (MagicSpendWithdrawalManager) {
         address proxy = Upgrades.deployTransparentProxy(
             "MagicSpendWithdrawalManager.sol",
             owner,

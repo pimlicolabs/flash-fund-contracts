@@ -13,7 +13,7 @@ import {SafeTransferLib} from "@solady-0.0.259/utils/SafeTransferLib.sol";
 import {MagicSpendWithdrawalManager} from "./../src/MagicSpendWithdrawalManager.sol";
 import {MagicSpendFactory} from "./../src/MagicSpendFactory.sol";
 
-contract MagicSpendLiquidityManagerTest is Test {
+contract MagicSpendLiquidityManagerTest is Test, MagicSpendFactory {
     address immutable OWNER = makeAddr("owner");
     address immutable RECIPIENT = makeAddr("recipient");
 
@@ -31,7 +31,7 @@ contract MagicSpendLiquidityManagerTest is Test {
     function setUp() external {
         (signer, signerKey) = makeAddrAndKey("signer");
 
-        magicSpendWithdrawalManager = MagicSpendFactory.deployWithdrawalManager(OWNER, signer);
+        magicSpendWithdrawalManager = deployWithdrawalManager(OWNER, signer);
 
         erc20 = new TestERC20(18);
         forceReverter = new ForceReverter();

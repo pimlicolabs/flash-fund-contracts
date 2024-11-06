@@ -9,7 +9,7 @@ import {ETH} from "./../src/base/Helpers.sol";
 
 import {Upgrades} from "@openzeppelin-0.3.6/foundry-upgrades/Upgrades.sol";
 
-contract MagicSpend_Deploy is Script {
+contract MagicSpend_Deploy is Script, MagicSpendFactory {
     function setUp() public {}
 
     function run() public returns (address _stakeManager, address _withdrawalManager) {
@@ -19,9 +19,8 @@ contract MagicSpend_Deploy is Script {
         address alice = vm.rememberKey(vm.envUint("ALICE"));
 
         vm.startBroadcast(deployer);
-
-        MagicSpendStakeManager stakeManager = MagicSpendFactory.deployStakeManager(owner);
-        MagicSpendWithdrawalManager withdrawalManager = MagicSpendFactory.deployWithdrawalManager(owner, signer);
+        MagicSpendStakeManager stakeManager = deployStakeManager(owner);
+        MagicSpendWithdrawalManager withdrawalManager = deployWithdrawalManager(owner, signer);
         vm.stopBroadcast();
 
         vm.startBroadcast(owner);
