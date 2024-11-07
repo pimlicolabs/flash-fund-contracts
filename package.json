@@ -8,8 +8,9 @@
     "build:abi": "./generate-abi.sh",
     "build:contracts": "forge clean && forge build",
     "test": "pnpm build && forge test",
-    "deploy:magic-spend": "pnpm build && pnpm deploy:magic-spend:sepolia && pnpm deploy:magic-spend:base-sepolia",
+    "deploy:magic-spend:all": "pnpm build && pnpm deploy:magic-spend:sepolia && pnpm deploy:magic-spend:base-sepolia && pnpm deploy:magic-spend:arbitrium-sepolia",
     "deploy:magic-spend:sepolia": "pnpm deploy:magic-spend:script --rpc-url https://11155111.rpc.thirdweb.com",
+    "deploy:magic-spend:arbitrium-sepolia": "pnpm deploy:magic-spend:script --rpc-url https://421614.rpc.thirdweb.com",
     "deploy:magic-spend:base-sepolia": "pnpm deploy:magic-spend:script --rpc-url https://84532.rpc.thirdweb.com",
     "deploy:magic-spend:script": "forge script script/MagicSpend.s.sol:MagicSpend_Deploy --broadcast"
   },

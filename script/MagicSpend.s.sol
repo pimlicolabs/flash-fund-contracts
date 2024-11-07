@@ -24,7 +24,7 @@ contract MagicSpend_Deploy is Script, MagicSpendFactory {
         vm.stopBroadcast();
 
         vm.startBroadcast(owner);
-        withdrawalManager.addLiquidity{value: 0.01 ether}(ETH, 0.01 ether);
+        withdrawalManager.addLiquidity{value: 0.5 ether}(ETH, 0.5 ether);
         vm.stopBroadcast();
 
         vm.startBroadcast(alice);
