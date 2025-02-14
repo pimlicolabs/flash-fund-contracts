@@ -44,6 +44,9 @@ abstract contract StakeManager is ReentrancyGuardUpgradeable {
     /// Emitted when a stake is unlocked (starts the unstake process)
     event StakeUnlocked(address indexed account, address indexed token, uint256 withdrawTime);
 
+    /// Emitted when a previously unlocked stake is re-locked
+    event StakeReLocked(address indexed account, address indexed token);
+
     /// Emitted when a stake is withdrawn
     event StakeWithdrawn(address indexed account, address indexed token, uint256 amount);
 
@@ -156,7 +159,7 @@ abstract contract StakeManager is ReentrancyGuardUpgradeable {
         stakeInfo.staked = true;
         stakeInfo.withdrawTime = 0;
 
-        emit StakeLocked(msg.sender, token, stakeInfo.amount, stakeInfo.unstakeDelaySec);
+        emit StakeReLocked(msg.sender, token);
     }
 
     /**

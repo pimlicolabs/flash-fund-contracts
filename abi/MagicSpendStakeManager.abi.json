@@ -648,6 +648,25 @@
   },
   {
     "type": "event",
+    "name": "StakeReLocked",
+    "inputs": [
+      {
+        "name": "account",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "token",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
     "name": "StakeUnlocked",
     "inputs": [
       {
