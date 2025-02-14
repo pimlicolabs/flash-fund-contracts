@@ -120,6 +120,11 @@
             "name": "operator",
             "type": "address",
             "internalType": "address"
+          },
+          {
+            "name": "metadata",
+            "type": "bytes",
+            "internalType": "bytes"
           }
         ]
       },
@@ -137,6 +142,11 @@
         "name": "amount",
         "type": "uint128",
         "internalType": "uint128"
+      },
+      {
+        "name": "treasury",
+        "type": "address",
+        "internalType": "address"
       }
     ],
     "outputs": [],
@@ -259,6 +269,11 @@
             "name": "operator",
             "type": "address",
             "internalType": "address"
+          },
+          {
+            "name": "metadata",
+            "type": "bytes",
+            "internalType": "bytes"
           }
         ]
       }
@@ -369,6 +384,19 @@
   },
   {
     "type": "function",
+    "name": "lockStake",
+    "inputs": [
+      {
+        "name": "token",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "owner",
     "inputs": [],
     "outputs": [
@@ -405,19 +433,6 @@
       }
     ],
     "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "skim",
-    "inputs": [
-      {
-        "name": "token",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
   },
   {
     "type": "function",
@@ -766,6 +781,11 @@
   {
     "type": "error",
     "name": "SignatureInvalid",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "StakeAlreadyLocked",
     "inputs": []
   },
   {

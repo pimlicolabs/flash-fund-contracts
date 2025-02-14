@@ -60,4 +60,9 @@ struct Allowance {
     uint48 salt;
     /// @dev Signer which is allowed to request withdrawals on behalf of this allowance.
     address operator;
+    /// @dev Metadata of the allowance.
+    bytes metadata;
 }
+
+bytes32 constant ASSET_ALLOWANCE_TYPE_HASH = keccak256("AssetAllowance(address token,uint128 amount,uint128 chainId)");
+bytes32 constant ALLOWANCE_TYPE_HASH = keccak256("Allowance(address account,bytes32[] assets,uint48 validUntil,uint48 validAfter,uint48 salt,address operator,bytes metadata)");

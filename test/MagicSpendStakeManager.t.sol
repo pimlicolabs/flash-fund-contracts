@@ -24,12 +24,15 @@ contract MagicSpendStakeManagerTest is Test, MagicSpendFactory {
     address alice;
     uint256 aliceKey;
 
+    address treasury;
+
     ForceReverter forceReverter;
     MagicSpendStakeManager magicSpendStakeManager;
     TestERC20 erc20;
 
     function setUp() external {
         (alice, aliceKey) = makeAddrAndKey("alice");
+        treasury = makeAddr("treasury");
 
         magicSpendStakeManager = deployStakeManager(OWNER);
 
@@ -56,7 +59,8 @@ contract MagicSpendStakeManagerTest is Test, MagicSpendFactory {
             validUntil: 0,
             validAfter: 0,
             salt: 0,
-            operator: alice
+            operator: alice,
+            metadata: abi.encode("test")
         });
 
         allowance.assets[0] = AssetAllowance({token: token, amount: amount, chainId: chainId});
@@ -70,7 +74,7 @@ contract MagicSpendStakeManagerTest is Test, MagicSpendFactory {
             magicSpendStakeManager.getAllowanceHash(allowance), alice, token, amount
         );
 
-        magicSpendStakeManager.claim(allowance, signature, 0, amount + fee);
+        magicSpendStakeManager.claim(allowance, signature, 0, amount + fee, treasury);
         vm.assertEq(magicSpendStakeManager.stakeOf(alice, token), 0 ether, "Alice should lose her stake after claim");
     }
 
@@ -85,7 +89,8 @@ contract MagicSpendStakeManagerTest is Test, MagicSpendFactory {
             validUntil: 0,
             validAfter: 0,
             salt: 0,
-            operator: alice
+            operator: alice,
+            metadata: abi.encode("test")
         });
 
         allowance.assets[0] = AssetAllowance({token: token, amount: amount, chainId: chainId});
@@ -99,7 +104,7 @@ contract MagicSpendStakeManagerTest is Test, MagicSpendFactory {
             magicSpendStakeManager.getAllowanceHash(allowance), alice, token, amount
         );
 
-        magicSpendStakeManager.claim(allowance, signature, 0, amount + fee);
+        magicSpendStakeManager.claim(allowance, signature, 0, amount + fee, treasury);
 
         vm.assertEq(magicSpendStakeManager.stakeOf(alice, token), 0 ether, "Alice should lose her stake after claim");
     }
