@@ -16,7 +16,7 @@ import {ETH, Withdrawal, Call} from "./base/Helpers.sol";
 import {SafeTransferLib} from "@solady-0.0.259/utils/SafeTransferLib.sol";
 
 /// @title MagicSpendWithdrawalManager
-/// @author Pimlico (https://github.com/pimlicolabs/magic-spend)
+/// @author Pimlico (https://github.com/pimlicolabs/magic-spend-contracts)
 /// @notice Contract that allows users to pull funds from if they provide a valid signed `Withdrawal`.
 /// @dev Inherits from Ownable.
 /// @custom:security-contact security@pimlico.io

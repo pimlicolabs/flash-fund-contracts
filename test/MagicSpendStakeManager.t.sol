@@ -69,13 +69,29 @@ contract MagicSpendStakeManagerTest is Test, MagicSpendFactory {
 
         bytes memory signature = signAllowance(allowance, aliceKey);
 
+        uint256 treasuryBalanceBefore = treasury.balance;
+
         vm.expectEmit(address(magicSpendStakeManager));
-        emit MagicSpendStakeManager.AllowanceClaimed(
-            magicSpendStakeManager.getAllowanceHash(allowance), alice, token, amount
+        emit MagicSpendStakeManager.AssetClaimed(
+            magicSpendStakeManager.getAllowanceHash(allowance), 0, amount
         );
 
-        magicSpendStakeManager.claim(allowance, signature, 0, amount + fee, treasury);
+        uint8[] memory assetIds = new uint8[](1);
+        assetIds[0] = 0;
+
+        uint128[] memory amounts = new uint128[](1);
+        amounts[0] = amount + fee;
+
+        magicSpendStakeManager.claim(
+            allowance,
+            signature,
+            assetIds,
+            amounts,
+            treasury
+        );
+
         vm.assertEq(magicSpendStakeManager.stakeOf(alice, token), 0 ether, "Alice should lose her stake after claim");
+        vm.assertEq(treasury.balance, treasuryBalanceBefore + amount + fee, "Treasury should receive the claimed amount");
     }
 
     function test_ClaimERC20TokenSuccess() external {
@@ -99,14 +115,29 @@ contract MagicSpendStakeManagerTest is Test, MagicSpendFactory {
 
         bytes memory signature = signAllowance(allowance, aliceKey);
 
+        uint256 treasuryBalanceBefore = erc20.balanceOf(treasury);
+
         vm.expectEmit(address(magicSpendStakeManager));
-        emit MagicSpendStakeManager.AllowanceClaimed(
-            magicSpendStakeManager.getAllowanceHash(allowance), alice, token, amount
+        emit MagicSpendStakeManager.AssetClaimed(
+            magicSpendStakeManager.getAllowanceHash(allowance), 0, amount
         );
 
-        magicSpendStakeManager.claim(allowance, signature, 0, amount + fee, treasury);
+        uint8[] memory assetIds = new uint8[](1);
+        assetIds[0] = 0;
+
+        uint128[] memory amounts = new uint128[](1);
+        amounts[0] = amount + fee;
+
+        magicSpendStakeManager.claim(
+            allowance,
+            signature,
+            assetIds,
+            amounts,
+            treasury
+        );
 
         vm.assertEq(magicSpendStakeManager.stakeOf(alice, token), 0 ether, "Alice should lose her stake after claim");
+        vm.assertEq(erc20.balanceOf(treasury), treasuryBalanceBefore + amount + fee, "Treasury should receive the claimed amount");
     }
 
     // // = = = Helpers = = =

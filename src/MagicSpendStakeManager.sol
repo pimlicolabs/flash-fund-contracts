@@ -14,7 +14,7 @@ import {ETH, Allowance, AssetAllowance, ASSET_ALLOWANCE_TYPE_HASH, ALLOWANCE_TYP
 import {SafeTransferLib} from "@solady-0.0.259/utils/SafeTransferLib.sol";
 
 /// @title MagicSpendStakeManager
-/// @author Pimlico (https://github.com/pimlicolabs/magic-spend)
+/// @author Pimlico (https://github.com/pimlicolabs/magic-spend-contracts)
 /// @notice Contract that allows users to stake their funds.
 /// @custom:security-contact security@pimlico.io
 contract MagicSpendStakeManager is StakeManager, OwnableUpgradeable, EIP712Upgradeable {
@@ -42,8 +42,11 @@ contract MagicSpendStakeManager is StakeManager, OwnableUpgradeable, EIP712Upgra
     /// @notice The claim was initiated with invalid signature (checked against `Allowance.account`).
     error SignatureInvalid();
 
-    /// @notice Emitted when an allowance is claimed.
-    event AllowanceClaimed(bytes32 indexed hash_, address indexed account, address indexed token, uint256 amount);
+    /// @notice The claim was initiated with invalid asset ids.
+    error InvalidAssetIds();
+
+    /// @notice Emitted when an asset is claimed.
+    event AssetClaimed(bytes32 indexed hash_, uint8 indexed assetId, uint256 amount);
 
     event FeeSkimmed(address indexed token, uint256 amount);
 
@@ -52,54 +55,82 @@ contract MagicSpendStakeManager is StakeManager, OwnableUpgradeable, EIP712Upgra
 
     function initialize(address _owner) external initializer {
         __Ownable_init(_owner);
-        __EIP712_init("Pimlico MagicSpend++", "1");
+        __EIP712_init("Pimlico Lock", "1");
     }
 
     /*´:°•.°+.*•´.*:˚.°*.˚•´.°:°•.°•.*•´.*:˚.°*.˚•´.°:°•.°+.*•´.*:*/
     /*                     EXTERNAL FUNCTIONS                     */
     /*.•°:°.´+˚.*°.˚:*.´•*.+°.•°:´*.´•*.•°.•°:°.´:•˚°.*°.˚:*.´+°.•*/
-
     function claim(
         Allowance calldata allowance,
         bytes calldata signature,
-        uint8 assetId,
-        uint128 amount,
+        uint8[] calldata assetIds,
+        uint128[] calldata amounts,
         address treasury
-    ) external nonReentrant {
+    ) external nonReentrant() {
+        if (assetIds.length != amounts.length) {
+            revert InvalidAssetIds();
+        }
+
         bytes32 hash_ = getAllowanceHash(allowance);
 
         if (requestStatuses[hash_]) {
             revert AlreadyUsed();
         }
 
-        if (allowance.validUntil != 0 && block.timestamp >= allowance.validUntil) {
+        if (allowance.validUntil != 0 && block.timestamp > allowance.validUntil) {
             revert AllowanceExpired();
         }
 
-        if (allowance.validAfter != 0 && block.timestamp <= allowance.validAfter) {
+        if (allowance.validAfter != 0 && block.timestamp < allowance.validAfter) {
             revert AllowanceNotYetValid();
         }
 
-        if (allowance.assets.length <= assetId) {
-            revert InvalidAssetAllowanceId();
-        }
-
-        AssetAllowance memory asset = allowance.assets[assetId];
-
-        if (asset.chainId != block.chainid) {
-            revert AssetAllowanceInvalidChain();
-        }
-
-        address account = allowance.account;
-
         bool signatureValid = SignatureChecker.isValidSignatureNow(
-            account,
+            allowance.account,
             MessageHashUtils.toEthSignedMessageHash(hash_),
             signature
         );
 
         if (!signatureValid) {
             revert SignatureInvalid();
+        }
+
+        for (uint256 i = 0; i < assetIds.length; i++) {
+            if (allowance.assets.length <= assetIds[i]) {
+                revert InvalidAssetAllowanceId();
+            }
+
+            uint128 amount = amounts[i];
+            uint8 assetId = assetIds[i];
+
+            AssetAllowance memory asset = allowance.assets[assetId];
+
+            claimAsset(
+                asset,
+                allowance.account,
+                amount,
+                treasury
+            );
+
+            emit AssetClaimed(
+                hash_,
+                assetId,
+                amount
+            );
+        }
+
+        requestStatuses[hash_] = true;
+    }
+
+    function claimAsset(
+        AssetAllowance memory asset,
+        address account,
+        uint128 amount,
+        address treasury
+    ) internal {
+        if (asset.chainId != block.chainid) {
+            revert AssetAllowanceInvalidChain();
         }
 
         if (amount > asset.amount) {
@@ -114,10 +145,6 @@ contract MagicSpendStakeManager is StakeManager, OwnableUpgradeable, EIP712Upgra
 
         _claimStake(account, token, amount);
         _transfer(token, treasury, amount);
-
-        requestStatuses[hash_] = true;
-
-        emit AllowanceClaimed(hash_, account, token, amount);
     }
 
     function getAssetAllowanceHash(AssetAllowance memory asset) public pure returns (bytes32) {

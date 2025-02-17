@@ -134,14 +134,14 @@
         "internalType": "bytes"
       },
       {
-        "name": "assetId",
-        "type": "uint8",
-        "internalType": "uint8"
+        "name": "assetIds",
+        "type": "uint8[]",
+        "internalType": "uint8[]"
       },
       {
-        "name": "amount",
-        "type": "uint128",
-        "internalType": "uint128"
+        "name": "amounts",
+        "type": "uint128[]",
+        "internalType": "uint128[]"
       },
       {
         "name": "treasury",
@@ -504,7 +504,7 @@
   },
   {
     "type": "event",
-    "name": "AllowanceClaimed",
+    "name": "AssetClaimed",
     "inputs": [
       {
         "name": "hash_",
@@ -513,16 +513,10 @@
         "internalType": "bytes32"
       },
       {
-        "name": "account",
-        "type": "address",
+        "name": "assetId",
+        "type": "uint8",
         "indexed": true,
-        "internalType": "address"
-      },
-      {
-        "name": "token",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
+        "internalType": "uint8"
       },
       {
         "name": "amount",
@@ -753,6 +747,11 @@
   {
     "type": "error",
     "name": "InvalidAssetAllowanceId",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "InvalidAssetIds",
     "inputs": []
   },
   {
