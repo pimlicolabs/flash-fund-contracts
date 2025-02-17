@@ -18,17 +18,20 @@ contract MagicSpend_Deploy is Script, MagicSpendFactory {
         address signer = vm.rememberKey(vm.envUint("SIGNER"));
         address alice = vm.rememberKey(vm.envUint("ALICE"));
 
+        uint128 liquidity = uint128(vm.envUint("LIQUIDITY"));
+        uint128 stake = 0.000001 ether;
+
         vm.startBroadcast(deployer);
         MagicSpendStakeManager stakeManager = deployStakeManager(owner);
         MagicSpendWithdrawalManager withdrawalManager = deployWithdrawalManager(owner, signer);
         vm.stopBroadcast();
 
         vm.startBroadcast(owner);
-        withdrawalManager.addLiquidity{value: 0.5 ether}(ETH, 0.5 ether);
+        withdrawalManager.addLiquidity{value: liquidity}(ETH, liquidity);
         vm.stopBroadcast();
 
         vm.startBroadcast(alice);
-        stakeManager.addStake{value: 0.01 ether}(ETH, 0.01 ether, 86400);
+        stakeManager.addStake{value: stake}(ETH, stake, 86400);
         vm.stopBroadcast();
 
         return (address(stakeManager), address(withdrawalManager));
