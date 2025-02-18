@@ -59,7 +59,7 @@ contract MagicSpendStakeManagerTest is Test, MagicSpendFactory {
             validUntil: 0,
             validAfter: 0,
             salt: 0,
-            operator: alice,
+            version: 0,
             metadata: abi.encode("test")
         });
 
@@ -105,7 +105,7 @@ contract MagicSpendStakeManagerTest is Test, MagicSpendFactory {
             validUntil: 0,
             validAfter: 0,
             salt: 0,
-            operator: alice,
+            version: 0,
             metadata: abi.encode("test")
         });
 

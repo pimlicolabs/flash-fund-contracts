@@ -167,7 +167,7 @@ contract MagicSpendStakeManager is StakeManager, OwnableUpgradeable, EIP712Upgra
                     allowance.validUntil,
                     allowance.validAfter,
                     allowance.salt,
-                    allowance.operator,
+                    allowance.version,
                     allowance.metadata
                 )
             )
