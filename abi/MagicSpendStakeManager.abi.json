@@ -118,8 +118,8 @@
           },
           {
             "name": "version",
-            "type": "uint16",
-            "internalType": "uint16"
+            "type": "uint32",
+            "internalType": "uint32"
           },
           {
             "name": "metadata",
@@ -151,25 +151,6 @@
     ],
     "outputs": [],
     "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "claimed",
-    "inputs": [
-      {
-        "name": "token",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint128",
-        "internalType": "uint128"
-      }
-    ],
-    "stateMutability": "view"
   },
   {
     "type": "function",
@@ -267,8 +248,8 @@
           },
           {
             "name": "version",
-            "type": "uint16",
-            "internalType": "uint16"
+            "type": "uint32",
+            "internalType": "uint32"
           },
           {
             "name": "metadata",
@@ -531,25 +512,6 @@
     "type": "event",
     "name": "EIP712DomainChanged",
     "inputs": [],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "FeeSkimmed",
-    "inputs": [
-      {
-        "name": "token",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      },
-      {
-        "name": "amount",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      }
-    ],
     "anonymous": false
   },
   {

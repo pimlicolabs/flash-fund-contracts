@@ -48,10 +48,7 @@ contract MagicSpendStakeManager is StakeManager, OwnableUpgradeable, EIP712Upgra
     /// @notice Emitted when an asset is claimed.
     event AssetClaimed(bytes32 indexed hash_, uint8 indexed assetId, uint256 amount);
 
-    event FeeSkimmed(address indexed token, uint256 amount);
-
     mapping(bytes32 hash_ => bool) public requestStatuses;
-    mapping(address token => uint128) public claimed;
 
     function initialize(address _owner) external initializer {
         __Ownable_init(_owner);
@@ -67,7 +64,7 @@ contract MagicSpendStakeManager is StakeManager, OwnableUpgradeable, EIP712Upgra
         uint8[] calldata assetIds,
         uint128[] calldata amounts,
         address treasury
-    ) external nonReentrant() {
+    ) external onlyOwner nonReentrant() {
         if (assetIds.length != amounts.length) {
             revert InvalidAssetIds();
         }

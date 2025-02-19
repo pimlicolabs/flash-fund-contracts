@@ -82,6 +82,7 @@ contract MagicSpendStakeManagerTest is Test, MagicSpendFactory {
         uint128[] memory amounts = new uint128[](1);
         amounts[0] = amount + fee;
 
+        vm.prank(OWNER);
         magicSpendStakeManager.claim(
             allowance,
             signature,
@@ -128,6 +129,7 @@ contract MagicSpendStakeManagerTest is Test, MagicSpendFactory {
         uint128[] memory amounts = new uint128[](1);
         amounts[0] = amount + fee;
 
+        vm.prank(OWNER);
         magicSpendStakeManager.claim(
             allowance,
             signature,
