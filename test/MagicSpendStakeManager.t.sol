@@ -13,6 +13,8 @@ import {SafeTransferLib} from "@solady-0.0.259/utils/SafeTransferLib.sol";
 import {MagicSpendStakeManager} from "./../src/MagicSpendStakeManager.sol";
 import {MagicSpendFactory} from "./../src/MagicSpendFactory.sol";
 
+import {Options} from "@openzeppelin-0.3.6/foundry-upgrades/Options.sol";
+import {Deploy} from "./../src/libraries/Deploy.sol";
 contract MagicSpendStakeManagerTest is Test, MagicSpendFactory {
     address immutable OWNER = makeAddr("owner");
     address immutable RECIPIENT = makeAddr("recipient");
@@ -34,7 +36,9 @@ contract MagicSpendStakeManagerTest is Test, MagicSpendFactory {
         (alice, aliceKey) = makeAddrAndKey("alice");
         treasury = makeAddr("treasury");
 
-        magicSpendStakeManager = deployStakeManager(OWNER);
+        Options memory opts = Deploy.getOptions(0);
+
+        magicSpendStakeManager = deployStakeManager(OWNER, opts);
 
         erc20 = new TestERC20(18);
         forceReverter = new ForceReverter();

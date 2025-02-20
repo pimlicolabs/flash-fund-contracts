@@ -65,4 +65,4 @@ struct Allowance {
 }
 
 bytes32 constant ASSET_ALLOWANCE_TYPE_HASH = keccak256("AssetAllowance(address token,uint128 amount,uint128 chainId)");
-bytes32 constant ALLOWANCE_TYPE_HASH = keccak256("Allowance(address account,bytes32[] assets,uint48 validUntil,uint48 validAfter,uint48 salt,uint32 version,bytes metadata)");
+bytes32 constant ALLOWANCE_TYPE_HASH = keccak256("Allowance(address account,AssetAllowance[] assets,uint48 validUntil,uint48 validAfter,uint48 salt,uint32 version,bytes metadata)");

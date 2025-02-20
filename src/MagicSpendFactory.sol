@@ -13,9 +13,7 @@ import {Utils} from "@openzeppelin-0.3.6/foundry-upgrades/internal/Utils.sol";
 abstract contract MagicSpendFactory {
     address constant DETERMINISTIC_DEPLOYER = 0x4e59b44847b379578588920cA78FbF26c0B4956C;
 
-    function deployStakeManager(address owner) internal returns (MagicSpendStakeManager) {
-        Options memory opts;
-
+    function deployStakeManager(address owner, Options memory opts) internal returns (MagicSpendStakeManager) {
         address proxy = deployTransparentProxy(
             "MagicSpendStakeManager.sol",
             owner,
@@ -26,9 +24,7 @@ abstract contract MagicSpendFactory {
         return MagicSpendStakeManager(payable(proxy));
     }
 
-    function deployWithdrawalManager(address owner, address signer) internal returns (MagicSpendWithdrawalManager) {
-        Options memory opts;
-
+    function deployWithdrawalManager(address owner, address signer, Options memory opts) internal returns (MagicSpendWithdrawalManager) {
         address proxy = deployTransparentProxy(
             "MagicSpendWithdrawalManager.sol",
             owner,
