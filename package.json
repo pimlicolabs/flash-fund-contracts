@@ -12,8 +12,9 @@
     "deploy:magic-spend:arbitrium-sepolia": "LIQUIDITY=500000000000000000 pnpm deploy:magic-spend:script --rpc-url https://421614.rpc.thirdweb.com",
     "deploy:magic-spend:base-sepolia": "LIQUIDITY=500000000000000000 pnpm deploy:magic-spend:script --rpc-url https://84532.rpc.thirdweb.com",
     "deploy:magic-spend:script": "pnpm build && forge script script/MagicSpend.s.sol:MagicSpend_Deploy --broadcast",
-    "deploy:magic-spend:testnets": "pnpm deploy:magic-spend:sepolia && pnpm deploy:magic-spend:arbitrium-sepolia && pnpm deploy:magic-spend:base-sepolia"
-    },
+    "deploy:magic-spend:testnets": "pnpm deploy:magic-spend:sepolia && pnpm deploy:magic-spend:arbitrium-sepolia && pnpm deploy:magic-spend:base-sepolia",
+    "deploy:magic-spend:base": "LIQUIDITY=1000000000000000 pnpm deploy:magic-spend:script --rpc-url https://8453.rpc.thirdweb.com"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
