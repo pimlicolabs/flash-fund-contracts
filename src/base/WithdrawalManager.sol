@@ -20,6 +20,10 @@ abstract contract WithdrawalManager is OwnableUpgradeable, ReentrancyGuardUpgrad
 
     error InsufficientLiquidity(address token);
 
+    receive() external payable {
+        emit LiquidityAdded(ETH, uint128(msg.value));
+    }
+
     function addLiquidity(address token, uint128 amount) external payable onlyOwner nonReentrant {
         if (token == ETH) {
             if (msg.value != amount) {
