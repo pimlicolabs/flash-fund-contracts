@@ -19,7 +19,8 @@
     "deploy:magic-spend:ethereum": "LIQUIDITY=1000000000000000 pnpm deploy:magic-spend:script --rpc-url https://1.rpc.thirdweb.com",
     "deploy:magic-spend:optimism": "LIQUIDITY=1000000000000000 pnpm deploy:magic-spend:script --rpc-url https://10.rpc.thirdweb.com",
     "deploy:magic-spend:polygon": "LIQUIDITY=10000000000000000000 pnpm deploy:magic-spend:script --rpc-url https://137.rpc.thirdweb.com",
-    "deploy:magic-spend:gnosis": "LIQUIDITY=3000000000000000000 pnpm deploy:magic-spend:script --rpc-url https://100.rpc.thirdweb.com"
+    "deploy:magic-spend:gnosis": "LIQUIDITY=3000000000000000000 pnpm deploy:magic-spend:script --rpc-url https://100.rpc.thirdweb.com",
+    "deploy:magic-spend:bnb": "LIQUIDITY=10000000000000000 pnpm deploy:magic-spend:script --rpc-url https://56.rpc.thirdweb.com"
   },
   "keywords": [],
   "author": "",
