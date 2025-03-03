@@ -117,9 +117,14 @@
             "internalType": "uint48"
           },
           {
-            "name": "operator",
-            "type": "address",
-            "internalType": "address"
+            "name": "version",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "metadata",
+            "type": "bytes",
+            "internalType": "bytes"
           }
         ]
       },
@@ -129,37 +134,23 @@
         "internalType": "bytes"
       },
       {
-        "name": "assetId",
-        "type": "uint8",
-        "internalType": "uint8"
+        "name": "assetIds",
+        "type": "uint8[]",
+        "internalType": "uint8[]"
       },
       {
-        "name": "amount",
-        "type": "uint128",
-        "internalType": "uint128"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
-  },
-  {
-    "type": "function",
-    "name": "claimed",
-    "inputs": [
+        "name": "amounts",
+        "type": "uint128[]",
+        "internalType": "uint128[]"
+      },
       {
-        "name": "token",
+        "name": "treasury",
         "type": "address",
         "internalType": "address"
       }
     ],
-    "outputs": [
-      {
-        "name": "",
-        "type": "uint128",
-        "internalType": "uint128"
-      }
-    ],
-    "stateMutability": "view"
+    "outputs": [],
+    "stateMutability": "nonpayable"
   },
   {
     "type": "function",
@@ -256,9 +247,14 @@
             "internalType": "uint48"
           },
           {
-            "name": "operator",
-            "type": "address",
-            "internalType": "address"
+            "name": "version",
+            "type": "uint32",
+            "internalType": "uint32"
+          },
+          {
+            "name": "metadata",
+            "type": "bytes",
+            "internalType": "bytes"
           }
         ]
       }
@@ -369,6 +365,19 @@
   },
   {
     "type": "function",
+    "name": "lockStake",
+    "inputs": [
+      {
+        "name": "token",
+        "type": "address",
+        "internalType": "address"
+      }
+    ],
+    "outputs": [],
+    "stateMutability": "nonpayable"
+  },
+  {
+    "type": "function",
     "name": "owner",
     "inputs": [],
     "outputs": [
@@ -405,19 +414,6 @@
       }
     ],
     "stateMutability": "view"
-  },
-  {
-    "type": "function",
-    "name": "skim",
-    "inputs": [
-      {
-        "name": "token",
-        "type": "address",
-        "internalType": "address"
-      }
-    ],
-    "outputs": [],
-    "stateMutability": "nonpayable"
   },
   {
     "type": "function",
@@ -489,7 +485,7 @@
   },
   {
     "type": "event",
-    "name": "AllowanceClaimed",
+    "name": "AssetClaimed",
     "inputs": [
       {
         "name": "hash_",
@@ -498,16 +494,10 @@
         "internalType": "bytes32"
       },
       {
-        "name": "account",
-        "type": "address",
+        "name": "assetId",
+        "type": "uint8",
         "indexed": true,
-        "internalType": "address"
-      },
-      {
-        "name": "token",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
+        "internalType": "uint8"
       },
       {
         "name": "amount",
@@ -522,25 +512,6 @@
     "type": "event",
     "name": "EIP712DomainChanged",
     "inputs": [],
-    "anonymous": false
-  },
-  {
-    "type": "event",
-    "name": "FeeSkimmed",
-    "inputs": [
-      {
-        "name": "token",
-        "type": "address",
-        "indexed": true,
-        "internalType": "address"
-      },
-      {
-        "name": "amount",
-        "type": "uint256",
-        "indexed": false,
-        "internalType": "uint256"
-      }
-    ],
     "anonymous": false
   },
   {
@@ -627,6 +598,25 @@
         "type": "uint256",
         "indexed": false,
         "internalType": "uint256"
+      }
+    ],
+    "anonymous": false
+  },
+  {
+    "type": "event",
+    "name": "StakeReLocked",
+    "inputs": [
+      {
+        "name": "account",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
+      },
+      {
+        "name": "token",
+        "type": "address",
+        "indexed": true,
+        "internalType": "address"
       }
     ],
     "anonymous": false
@@ -723,6 +713,11 @@
   },
   {
     "type": "error",
+    "name": "InvalidAssetIds",
+    "inputs": []
+  },
+  {
+    "type": "error",
     "name": "InvalidInitialization",
     "inputs": []
   },
@@ -766,6 +761,11 @@
   {
     "type": "error",
     "name": "SignatureInvalid",
+    "inputs": []
+  },
+  {
+    "type": "error",
+    "name": "StakeAlreadyLocked",
     "inputs": []
   },
   {

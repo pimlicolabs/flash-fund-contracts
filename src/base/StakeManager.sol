@@ -29,6 +29,9 @@ abstract contract StakeManager is ReentrancyGuardUpgradeable {
     /// Emitted when trying to unlock an already unlocked stake
     error StakeAlreadyUnlocked();
 
+    /// Emitted when trying to lock an already locked stake
+    error StakeAlreadyLocked();
+
     /// Emitted when trying to remove a locked stake
     error StakeIsLocked();
 
@@ -40,6 +43,9 @@ abstract contract StakeManager is ReentrancyGuardUpgradeable {
 
     /// Emitted when a stake is unlocked (starts the unstake process)
     event StakeUnlocked(address indexed account, address indexed token, uint256 withdrawTime);
+
+    /// Emitted when a previously unlocked stake is re-locked
+    event StakeReLocked(address indexed account, address indexed token);
 
     /// Emitted when a stake is withdrawn
     event StakeWithdrawn(address indexed account, address indexed token, uint256 amount);
@@ -135,6 +141,28 @@ abstract contract StakeManager is ReentrancyGuardUpgradeable {
     }
 
     /**
+     * Re-locks a previously unlocked stake, canceling the withdrawal process.
+     * Can only be called if the stake was previously unlocked via unlockStake().
+     * @param token - The address of the token being re-locked
+     */
+    function lockStake(address token) external nonReentrant {
+        StakeInfo storage stakeInfo = stakes[msg.sender][token];
+
+        if (stakeInfo.staked) {
+            revert StakeAlreadyLocked();
+        }
+
+        if (stakeInfo.amount == 0) {
+            revert StakeTooLow();
+        }
+
+        stakeInfo.staked = true;
+        stakeInfo.withdrawTime = 0;
+
+        emit StakeReLocked(msg.sender, token);
+    }
+
+    /**
      * Withdraws the staked assets after the unstake delay has passed.
      * Must first call `unlockStake` and wait for the delay to pass.
      * @param token - The address of the token being withdrawn
@@ -159,11 +187,7 @@ abstract contract StakeManager is ReentrancyGuardUpgradeable {
         stakeInfo.staked = false;
         stakeInfo.unstakeDelaySec = 0;
 
-        if (token == ETH) {
-            SafeTransferLib.safeTransferETH(recipient, stake);
-        } else {
-            SafeTransferLib.safeTransfer(token, recipient, stake);
-        }
+        _transfer(token, recipient, stake);
 
         emit StakeWithdrawn(msg.sender, token, stake);
     }
@@ -180,5 +204,13 @@ abstract contract StakeManager is ReentrancyGuardUpgradeable {
         stakeInfo.amount = stake - amount;
 
         emit StakeClaimed(account, token, amount);
+    }
+
+    function _transfer(address token, address to, uint128 amount) internal {
+        if (token == ETH) {
+            SafeTransferLib.forceSafeTransferETH(to, amount);
+        } else {
+            SafeTransferLib.safeTransfer(token, to, amount);
+        }
     }
 }

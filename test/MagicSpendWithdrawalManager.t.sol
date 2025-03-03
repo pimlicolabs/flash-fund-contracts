@@ -12,6 +12,8 @@ import {MessageHashUtils} from "@openzeppelin-5.0.2/contracts/utils/cryptography
 import {SafeTransferLib} from "@solady-0.0.259/utils/SafeTransferLib.sol";
 import {MagicSpendWithdrawalManager} from "./../src/MagicSpendWithdrawalManager.sol";
 import {MagicSpendFactory} from "./../src/MagicSpendFactory.sol";
+import {Options} from "@openzeppelin-0.3.6/foundry-upgrades/Options.sol";
+import {Deploy} from "./../src/libraries/Deploy.sol";
 
 contract MagicSpendLiquidityManagerTest is Test, MagicSpendFactory {
     address immutable OWNER = makeAddr("owner");
@@ -31,7 +33,9 @@ contract MagicSpendLiquidityManagerTest is Test, MagicSpendFactory {
     function setUp() external {
         (signer, signerKey) = makeAddrAndKey("signer");
 
-        magicSpendWithdrawalManager = deployWithdrawalManager(OWNER, signer);
+        Options memory opts = Deploy.getOptions(0);
+
+        magicSpendWithdrawalManager = deployWithdrawalManager(OWNER, signer, opts);
 
         erc20 = new TestERC20(18);
         forceReverter = new ForceReverter();

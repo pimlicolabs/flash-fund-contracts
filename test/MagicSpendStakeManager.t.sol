@@ -13,6 +13,8 @@ import {SafeTransferLib} from "@solady-0.0.259/utils/SafeTransferLib.sol";
 import {MagicSpendStakeManager} from "./../src/MagicSpendStakeManager.sol";
 import {MagicSpendFactory} from "./../src/MagicSpendFactory.sol";
 
+import {Options} from "@openzeppelin-0.3.6/foundry-upgrades/Options.sol";
+import {Deploy} from "./../src/libraries/Deploy.sol";
 contract MagicSpendStakeManagerTest is Test, MagicSpendFactory {
     address immutable OWNER = makeAddr("owner");
     address immutable RECIPIENT = makeAddr("recipient");
@@ -24,14 +26,19 @@ contract MagicSpendStakeManagerTest is Test, MagicSpendFactory {
     address alice;
     uint256 aliceKey;
 
+    address treasury;
+
     ForceReverter forceReverter;
     MagicSpendStakeManager magicSpendStakeManager;
     TestERC20 erc20;
 
     function setUp() external {
         (alice, aliceKey) = makeAddrAndKey("alice");
+        treasury = makeAddr("treasury");
 
-        magicSpendStakeManager = deployStakeManager(OWNER);
+        Options memory opts = Deploy.getOptions(0);
+
+        magicSpendStakeManager = deployStakeManager(OWNER, opts);
 
         erc20 = new TestERC20(18);
         forceReverter = new ForceReverter();
@@ -56,7 +63,8 @@ contract MagicSpendStakeManagerTest is Test, MagicSpendFactory {
             validUntil: 0,
             validAfter: 0,
             salt: 0,
-            operator: alice
+            version: 0,
+            metadata: abi.encode("test")
         });
 
         allowance.assets[0] = AssetAllowance({token: token, amount: amount, chainId: chainId});
@@ -65,13 +73,30 @@ contract MagicSpendStakeManagerTest is Test, MagicSpendFactory {
 
         bytes memory signature = signAllowance(allowance, aliceKey);
 
+        uint256 treasuryBalanceBefore = treasury.balance;
+
         vm.expectEmit(address(magicSpendStakeManager));
-        emit MagicSpendStakeManager.AllowanceClaimed(
-            magicSpendStakeManager.getAllowanceHash(allowance), alice, token, amount
+        emit MagicSpendStakeManager.AssetClaimed(
+            magicSpendStakeManager.getAllowanceHash(allowance), 0, amount
         );
 
-        magicSpendStakeManager.claim(allowance, signature, 0, amount + fee);
+        uint8[] memory assetIds = new uint8[](1);
+        assetIds[0] = 0;
+
+        uint128[] memory amounts = new uint128[](1);
+        amounts[0] = amount + fee;
+
+        vm.prank(OWNER);
+        magicSpendStakeManager.claim(
+            allowance,
+            signature,
+            assetIds,
+            amounts,
+            treasury
+        );
+
         vm.assertEq(magicSpendStakeManager.stakeOf(alice, token), 0 ether, "Alice should lose her stake after claim");
+        vm.assertEq(treasury.balance, treasuryBalanceBefore + amount + fee, "Treasury should receive the claimed amount");
     }
 
     function test_ClaimERC20TokenSuccess() external {
@@ -85,7 +110,8 @@ contract MagicSpendStakeManagerTest is Test, MagicSpendFactory {
             validUntil: 0,
             validAfter: 0,
             salt: 0,
-            operator: alice
+            version: 0,
+            metadata: abi.encode("test")
         });
 
         allowance.assets[0] = AssetAllowance({token: token, amount: amount, chainId: chainId});
@@ -94,14 +120,30 @@ contract MagicSpendStakeManagerTest is Test, MagicSpendFactory {
 
         bytes memory signature = signAllowance(allowance, aliceKey);
 
+        uint256 treasuryBalanceBefore = erc20.balanceOf(treasury);
+
         vm.expectEmit(address(magicSpendStakeManager));
-        emit MagicSpendStakeManager.AllowanceClaimed(
-            magicSpendStakeManager.getAllowanceHash(allowance), alice, token, amount
+        emit MagicSpendStakeManager.AssetClaimed(
+            magicSpendStakeManager.getAllowanceHash(allowance), 0, amount
         );
 
-        magicSpendStakeManager.claim(allowance, signature, 0, amount + fee);
+        uint8[] memory assetIds = new uint8[](1);
+        assetIds[0] = 0;
+
+        uint128[] memory amounts = new uint128[](1);
+        amounts[0] = amount + fee;
+
+        vm.prank(OWNER);
+        magicSpendStakeManager.claim(
+            allowance,
+            signature,
+            assetIds,
+            amounts,
+            treasury
+        );
 
         vm.assertEq(magicSpendStakeManager.stakeOf(alice, token), 0 ether, "Alice should lose her stake after claim");
+        vm.assertEq(erc20.balanceOf(treasury), treasuryBalanceBefore + amount + fee, "Treasury should receive the claimed amount");
     }
 
     // // = = = Helpers = = =

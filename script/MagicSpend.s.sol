@@ -8,7 +8,8 @@ import {MagicSpendFactory} from "./../src/MagicSpendFactory.sol";
 import {ETH} from "./../src/base/Helpers.sol";
 
 import {Upgrades} from "@openzeppelin-0.3.6/foundry-upgrades/Upgrades.sol";
-
+import {Options} from "@openzeppelin-0.3.6/foundry-upgrades/Options.sol";
+import {Deploy} from "./../src/libraries/Deploy.sol";
 contract MagicSpend_Deploy is Script, MagicSpendFactory {
     function setUp() public {}
 
@@ -17,18 +18,24 @@ contract MagicSpend_Deploy is Script, MagicSpendFactory {
         address owner = vm.rememberKey(vm.envUint("OWNER"));
         address signer = vm.rememberKey(vm.envUint("SIGNER"));
         address alice = vm.rememberKey(vm.envUint("ALICE"));
+        uint256 salt = vm.envUint("SALT");
+
+        uint128 liquidity = uint128(vm.envUint("LIQUIDITY"));
+        uint128 stake = 0.000001 ether;
 
         vm.startBroadcast(deployer);
-        MagicSpendStakeManager stakeManager = deployStakeManager(owner);
-        MagicSpendWithdrawalManager withdrawalManager = deployWithdrawalManager(owner, signer);
+        Options memory opts = Deploy.getOptions(salt);
+ 
+        MagicSpendStakeManager stakeManager = deployStakeManager(owner, opts);
+        MagicSpendWithdrawalManager withdrawalManager = deployWithdrawalManager(owner, signer, opts);
         vm.stopBroadcast();
 
         vm.startBroadcast(owner);
-        withdrawalManager.addLiquidity{value: 0.5 ether}(ETH, 0.5 ether);
+        withdrawalManager.addLiquidity{value: liquidity}(ETH, liquidity);
         vm.stopBroadcast();
 
         vm.startBroadcast(alice);
-        stakeManager.addStake{value: 0.01 ether}(ETH, 0.01 ether, 86400);
+        stakeManager.addStake{value: stake}(ETH, stake, 86400);
         vm.stopBroadcast();
 
         return (address(stakeManager), address(withdrawalManager));
