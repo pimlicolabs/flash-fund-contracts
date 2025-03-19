@@ -4,16 +4,96 @@ pragma solidity ^0.8.0;
 import {SafeTransferLib} from "@solady-0.0.259/utils/SafeTransferLib.sol";
 import {ReentrancyGuardUpgradeable} from
     "@openzeppelin-5.0.2/contracts-upgradeable/utils/ReentrancyGuardUpgradeable.sol";
+import {EIP712Upgradeable} from "@openzeppelin-5.0.2/contracts-upgradeable/utils/cryptography/EIP712Upgradeable.sol";
 import {ETH} from "./Helpers.sol";
+import {MessageHashUtils} from "@openzeppelin-5.0.2/contracts/utils/cryptography/MessageHashUtils.sol";
 
 /* solhint-disable not-rely-on-time */
+
+/// @notice This is the same as the inherited EIP712Upgradeable contract, but made chain agnostic 
+/// (chain id in EIP712 domain is hardcoded to 1 for ETH mainnet). This is because signatures may be used 
+/// across different chains, as Allowance can contain assets on different chains.
+abstract contract StakeManagerEIP712 is EIP712Upgradeable {
+    bytes32 private constant TYPE_HASH =
+        keccak256("EIP712Domain(string name,string version,address verifyingContract)");
+
+    // keccak256(abi.encode(uint256(keccak256("openzeppelin.storage.EIP712")) - 1)) & ~bytes32(uint256(0xff))
+    bytes32 private constant EIP712StorageLocation = 0xa16a46d94261c7517cc8ff89f61c0ce93598e3c849801011dee649a6a557d100;
+
+    function __StakeManagerEIP712_init() internal {
+        __EIP712_init("Pimlico FlashFund", "1");
+    }
+
+    function _getEIP712StorageCustom() private pure returns (EIP712Storage storage $) {
+        assembly {
+            $.slot := EIP712StorageLocation
+        }
+    }
+
+    function _buildDomainSeparatorCustom() public view returns (bytes32) {
+        return keccak256(abi.encode(TYPE_HASH, _EIP712NameHash(), _EIP712VersionHash(), address(this)));
+    }
+
+    /**
+     * @dev Given an already https://eips.ethereum.org/EIPS/eip-712#definition-of-hashstruct[hashed struct], this
+     * function returns the hash of the fully encoded EIP712 message for this domain.
+     *
+     * This hash can be used together with {ECDSA-recover} to obtain the signer of a message. For example:
+     *
+     * ```solidity
+     * bytes32 digest = _hashTypedDataV4(keccak256(abi.encode(
+     *     keccak256("Mail(address to,string contents)"),
+     *     mailTo,
+     *     keccak256(bytes(mailContents))
+     * )));
+     * address signer = ECDSA.recover(digest, signature);
+     * ```
+     */
+    function _hashTypedDataV4(bytes32 structHash) internal view override virtual returns (bytes32) {
+        return MessageHashUtils.toTypedDataHash(_buildDomainSeparatorCustom(), structHash);
+    }
+
+    /**
+     * @dev See {IERC-5267}.
+     */
+    function eip712Domain()
+        public
+        view
+        virtual
+        override
+        returns (
+            bytes1 fields,
+            string memory name,
+            string memory version,
+            uint256 chainId,
+            address verifyingContract,
+            bytes32 salt,
+            uint256[] memory extensions
+        )
+    {
+        EIP712Storage storage $ = _getEIP712StorageCustom();
+        // If the hashed name and version in storage are non-zero, the contract hasn't been properly initialized
+        // and the EIP712 domain is not reliable, as it will be missing name and version.
+        require($._hashedName == 0 && $._hashedVersion == 0, "EIP712: Uninitialized");
+
+        return (
+            hex"0f", // 01111
+            _EIP712Name(),
+            _EIP712Version(),
+            block.chainid,
+            address(this),
+            bytes32(0),
+            new uint256[](0)
+        );
+    }
+}
 
 /**
  * Manages stakes.
  * Stakes are locked for a period of time.
  * Stakes can be added, claimed, and withdrawn.
  * To add stake, call `addStake` with the asset and amount.
- * Stake is claimed when `MagicSpendStakeManager.claim` is called
+ * Stake is claimed when `FlashFundStakeManager.claim` is called
  * To withdraw stake, call `withdrawStake` with the asset and recipient. No partical unstakes are allowed.
  */
 abstract contract StakeManager is ReentrancyGuardUpgradeable {
@@ -79,7 +159,15 @@ abstract contract StakeManager is ReentrancyGuardUpgradeable {
     }
 
     receive() external payable {
-        addStake(ETH, uint128(msg.value), THREE_DAYS);
+        addStake(ETH, uint128(msg.value), THREE_DAYS, msg.sender);
+    }
+
+    function addStake(
+        address token,
+        uint128 amount,
+        uint32 unstakeDelaySec
+    ) public payable {
+        addStake(token, amount, unstakeDelaySec, msg.sender);
     }
 
     /**
@@ -87,8 +175,15 @@ abstract contract StakeManager is ReentrancyGuardUpgradeable {
      * any pending unstake is first cancelled.
      * @param unstakeDelaySec The new lock duration before the deposit can be withdrawn.
      */
-    function addStake(address token, uint128 amount, uint32 unstakeDelaySec) public payable nonReentrant {
-        StakeInfo storage stakeInfo = stakes[msg.sender][token];
+    function addStake(
+        address token,
+        uint128 amount,
+        uint32 unstakeDelaySec,
+        address recipient
+    ) public payable nonReentrant {
+        address sender = msg.sender;
+
+        StakeInfo storage stakeInfo = stakes[recipient][token];
 
         if (unstakeDelaySec == 0 || unstakeDelaySec > FIVE_DAYS) {
             revert InvalidUnstakeDelay();
@@ -115,10 +210,10 @@ abstract contract StakeManager is ReentrancyGuardUpgradeable {
                 revert InsufficientFunds();
             }
         } else {
-            SafeTransferLib.safeTransferFrom(token, msg.sender, address(this), amount);
+            SafeTransferLib.safeTransferFrom(token, sender, address(this), amount);
         }
 
-        emit StakeLocked(msg.sender, token, amount, unstakeDelaySec);
+        emit StakeLocked(recipient, token, amount, unstakeDelaySec);
     }
 
     /**

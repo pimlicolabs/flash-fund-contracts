@@ -7,4 +7,4 @@ ffi = true
 ast = true
 build_info = true
 extra_output = ["storageLayout"]
-gas_reports = ["MagicSpendStakeManager", "MagicSpendWithdrawalManager"]
+gas_reports = ["FlashFundStakeManager", "FlashFundWithdrawalManager"]

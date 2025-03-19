@@ -1,3 +1,3 @@
 mkdir -p abi
-forge inspect src/MagicSpendWithdrawalManager.sol:MagicSpendWithdrawalManager abi > ./abi/MagicSpendWithdrawalManager.abi.json
-forge inspect src/MagicSpendStakeManager.sol:MagicSpendStakeManager abi > ./abi/MagicSpendStakeManager.abi.json
+forge inspect src/FlashFundWithdrawalManager.sol:FlashFundWithdrawalManager abi > ./abi/FlashFundWithdrawalManager.abi.json
+forge inspect src/FlashFundStakeManager.sol:FlashFundStakeManager abi > ./abi/FlashFundStakeManager.abi.json

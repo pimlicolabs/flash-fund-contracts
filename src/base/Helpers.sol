@@ -11,7 +11,7 @@ struct Call {
 }
 
 /// @notice This struct represents a withdrawal request.
-/// @dev signed by the signer it allows to withdraw funds from the `MagicSpendWithdrawalManager` contract
+/// @dev signed by the signer it allows to withdraw funds from the `FlashFundWithdrawalManager` contract
 struct Withdrawal {
     /// @dev Token that will be withdrawn.
     address token;
@@ -44,7 +44,7 @@ struct AssetAllowance {
 }
 
 /// @notice Helper struct that represents an allowance.
-/// @dev signed by the user it allows Pimlico to claim part of user's stake from the `MagicSpendStakeManager` contract
+/// @dev signed by the user it allows Pimlico to claim part of user's stake from the `FlashFundStakeManager` contract
 /// @dev on one or many chains.
 struct Allowance {
     /// @dev Address which stake is allowed to be claimed.
@@ -65,4 +65,4 @@ struct Allowance {
 }
 
 bytes32 constant ASSET_ALLOWANCE_TYPE_HASH = keccak256("AssetAllowance(address token,uint128 amount,uint128 chainId)");
-bytes32 constant ALLOWANCE_TYPE_HASH = keccak256("Allowance(address account,AssetAllowance[] assets,uint48 validUntil,uint48 validAfter,uint48 salt,uint32 version,bytes metadata)");
+bytes32 constant ALLOWANCE_TYPE_HASH = keccak256("Allowance(address account,AssetAllowance[] assets,uint48 validUntil,uint48 validAfter,uint48 salt,uint32 version,bytes metadata)AssetAllowance(address token,uint128 amount,uint128 chainId)");
