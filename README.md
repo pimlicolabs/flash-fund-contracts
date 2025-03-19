@@ -1,4 +1,4 @@
-# MagicSpend++
+# FlashFund contracts
 
 ## Build
 

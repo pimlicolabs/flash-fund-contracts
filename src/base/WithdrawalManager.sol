@@ -11,7 +11,7 @@ import {ETH} from "./Helpers.sol";
  * Manages liquidity.
  * Liquidity (ETH or ERC20 tokens) can be added only by owner.
  * Liquidity can be removed only by owner at any time.
- * Liquidity can also be removed by calling the `MagicSpendWithdrawalManager.withdraw`
+ * Liquidity can also be removed by calling the `FlashFundWithdrawalManager.withdraw`
  */
 abstract contract WithdrawalManager is OwnableUpgradeable, ReentrancyGuardUpgradeable {
     event LiquidityAdded(address token, uint128 amount);
